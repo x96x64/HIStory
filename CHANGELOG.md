@@ -4,12 +4,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.0] - 2026-11-10
+## [2.0.0] - 2026-11-10
+
+### Removed
+
+- The `specs/` folder of the catalog. `hist watch` no longer adds albums from it, and `hist init`,
+  `hist doctor` and `hist catalog check` no longer look for it. Add a new album with
+  `hist catalog add SPEC --from DIR`; the spec file can be kept anywhere.
 
 ### Changed
 
-- `hist watch` and `hist catalog add` move the spec of every album already in the catalog from `specs/` to
-  `state/history/`, so that `specs/` holds only albums that are still to be added.
+- A relative `cover` in a spec file is taken relative to the spec file's folder instead of the catalog folder.
 
 ## [1.2.0] - 2026-11-10
 
