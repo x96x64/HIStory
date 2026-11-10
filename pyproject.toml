@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "history-music"
+name = "hist"
 version = "2.2.0"
 description = "Rebuild an Apple Music library on macOS from FLAC downloads with exact, verified tags"
 readme = "README.md"
