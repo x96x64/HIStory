@@ -6,11 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [1.2.0] - 2026-11-10
 
+### Added
+
+- A GitHub Actions workflow that runs the tests on macOS with Python 3.12 and the newest Python, and badges in
+  the README.
+
 ### Changed
 
 - `hist verify` reads metadata atoms and store purchase data for up to 40 files per exiftool run instead of one
   file per run, which makes it several times faster on a full library.
 - Installation is from a clone of the GitHub repository; build output is no longer kept in the project.
+- The repository is github.com/x96x64/HIStory, and the license's copyright line uses the sign ©.
 
 ### Removed
 
