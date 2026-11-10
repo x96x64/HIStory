@@ -1,5 +1,11 @@
 # HIStory
 
+[![Tests](https://github.com/x96x64/history/actions/workflows/test.yml/badge.svg)](https://github.com/x96x64/history/actions/workflows/test.yml)
+[![Release](https://img.shields.io/github/v/release/x96x64/history)](https://github.com/x96x64/history/releases/latest)
+[![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/downloads/)
+[![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)](#requirements)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 HIStory (`hist`) helps you rebuild an Apple Music library on macOS from FLAC downloads, so that every track ends
 up as an Apple Lossless (ALAC) file whose tags and cover are exactly the ones you decided on.
 
@@ -94,11 +100,6 @@ python3 -m venv .venv && .venv/bin/pip install -e '.[test]'
 ```
 
 The tests generate short FLAC files with ffmpeg and never touch your library or the Music app.
-
-## Contributors
-
-- [x96x64](https://github.com/x96x64)
-- [Claude](https://github.com/claude) (@claude)
 
 ## License
 
