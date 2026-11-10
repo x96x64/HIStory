@@ -10,14 +10,14 @@ from history_music.music_app import MusicApp
 def run(config: Config, music: MusicApp | None) -> int:
     all_albums = catalog.albums(config)
     converted = state.converted(config.state).names()
-    registered = state.added(config.state).load()
+    added = state.added(config.state).load()
     folders = matching.scan(config.sources)
     listed = collections.Counter(a for a, _, _ in music.summary()) if music else None
     counts = collections.Counter()
     for order, album in enumerate(all_albums, 1):
         name = album["name"]
-        if name in registered:
-            label = "in the library" + (f", {registered[name].get('dates')}" if registered[name].get("dates") else "")
+        if name in added:
+            label = "in the library" + (f", {added[name].get('dates')}" if added[name].get("dates") else "")
         elif name in converted:
             label = "converted"
         elif all(Path(t.path).exists() for t in album["tracks"]):

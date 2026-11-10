@@ -28,8 +28,7 @@ class Progress:
         self.path = path
 
     def load(self) -> dict:
-        data = read_json(self.path, {})
-        return {name: {} for name in data} if isinstance(data, list) else data
+        return read_json(self.path, {})
 
     def names(self) -> set:
         return set(self.load())
@@ -53,11 +52,7 @@ def converted(state_dir: Path) -> Progress:
 
 def added(state_dir: Path) -> Progress:
     """Albums found in the library, checked against the catalog and dated."""
-    path = state_dir / "added.json"
-    old = state_dir / "registered.json"          # the name used by earlier builds
-    if old.exists() and not path.exists():
-        os.replace(old, path)
-    return Progress(path)
+    return Progress(state_dir / "added.json")
 
 
 def keep_history(path: Path, history_dir: Path) -> Path | None:
