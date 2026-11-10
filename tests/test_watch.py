@@ -28,6 +28,8 @@ def test_watch_adds_specs_converts_and_ends_by_itself(env):
     assert code == 0
     assert state.converted(env.config().state).names() == {"First", "Second"}
     assert {a["name"] for a in catalog.albums(env.config())} == {"First", "Second"}
+    assert not list((env.home / "specs").glob("*.json"))
+    assert [p.name.split(".json")[0] for p in (env.home / "state" / "history").glob("second.json.*")] == ["second"]
 
 
 def test_watch_stops_when_asked(env):

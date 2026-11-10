@@ -247,6 +247,9 @@ def cmd_catalog(args, cfg) -> int:
         spec = catalog.read_spec(Path(args.spec).expanduser())
         n = catalog.add_spec(cfg, spec, Path(args.source).expanduser(), dry_run=args.dry_run)
         log.info(("Would add " if args.dry_run else "Added ") + f"{spec['album']} ({n} tracks)")
+        if not args.dry_run:
+            for name in catalog.retire_applied_specs(cfg):
+                log.info(f"Moved specs/{name} to state/history: its album is in the catalog")
         return EXIT_OK
     if action == "check":
         problems = catalog.check(cfg)

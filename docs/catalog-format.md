@@ -100,8 +100,8 @@ Every change made by `hist catalog set`, `unset` or `remove` keeps the previous 
 ## specs/
 
 A spec describes an album to add. `hist watch` adds it to the catalog as soon as its download is complete, and
-`hist catalog add SPEC --from DIR` adds it at once. After that, the catalog is what counts: a spec is never
-applied again.
+`hist catalog add SPEC --from DIR` adds it at once. After that, the catalog is what counts: the spec is moved
+to `state/history/`, so that `specs/` holds only albums that are still to be added.
 
 ```json
 {

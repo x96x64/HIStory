@@ -43,6 +43,8 @@ def add_ready_specs(config: Config, only: str) -> None:
             continue
         n = catalog.add_spec(config, spec, folder.path)
         log.info(f"Added {spec['album']} to the catalog from specs/{path.name} ({n} tracks)")
+    for name in catalog.retire_applied_specs(config):
+        log.info(f"Moved specs/{name} to state/history: its album is in the catalog")
 
 
 def waiting_for(config: Config, only: str) -> list:

@@ -237,6 +237,21 @@ def pending_specs(config: Config) -> list:
     return sorted(out, key=lambda item: item[1]["release"])
 
 
+def retire_applied_specs(config: Config) -> list:
+    """Move the specs whose album is in the catalog to state/history, so that specs/ holds only albums to add.
+
+    Returns the file names of the moved specs.
+    """
+    names = {r["tags"]["ItemList:Album"] for r in read_records(config)}
+    retired = []
+    for path, spec in all_specs(config):
+        if spec["album"] in names:
+            state.keep_history(path, config.state / "history")
+            path.unlink()
+            retired.append(path.name)
+    return retired
+
+
 # ------------------------------------------------------------------ import
 
 def import_library(config: Config, source: Path) -> tuple:

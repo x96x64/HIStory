@@ -82,8 +82,8 @@ replaced; a FLAC file is deleted only after its M4A passed every check.
 
 Look at the download folders and the library every 10 seconds.
 
-Downloads: add albums from `specs/` to the catalog when their download is complete, and convert every complete
-download as `hist convert` does.
+Downloads: add albums from `specs/` to the catalog when their download is complete, move the spec of every album
+already in the catalog to `state/history/`, and convert every complete download as `hist convert` does.
 
 Library: you add the converted albums to the Music app yourself (drag the album folder into the Music window, or
 File > Add to Library). When an album appears in the library folder and its files stop changing, `hist watch`
@@ -158,7 +158,8 @@ The previous `tracks.json` is kept in `state/history/`.
 : Remove a tag. Title, Album, AlbumArtist, Artist, TrackNumber and DiskNumber cannot be removed.
 
 `add SPEC --from DIR [--dry-run]`
-: Add an album from a spec file and the folder of its downloaded FLAC files.
+: Add an album from a spec file and the folder of its downloaded FLAC files. Afterwards, specs in `specs/` whose album is
+in the catalog are moved to `state/history/`.
 
 `remove ALBUM [--dry-run]`
 : Remove an album from the catalog folder after you have removed it from the Music app: its tracks, its
