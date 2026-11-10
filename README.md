@@ -1,7 +1,7 @@
 # HIStory
 
-[![Tests](https://github.com/x96x64/history/actions/workflows/test.yml/badge.svg)](https://github.com/x96x64/history/actions/workflows/test.yml)
-[![Release](https://img.shields.io/github/v/release/x96x64/history)](https://github.com/x96x64/history/releases/latest)
+[![Tests](https://github.com/x96x64/HIStory/actions/workflows/test.yml/badge.svg)](https://github.com/x96x64/HIStory/actions/workflows/test.yml)
+[![Release](https://img.shields.io/github/v/release/x96x64/HIStory)](https://github.com/x96x64/HIStory/releases/latest)
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/downloads/)
 [![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)](#requirements)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -33,12 +33,12 @@ its folder and files.
 ```sh
 brew install ffmpeg flac exiftool pipx
 pipx ensurepath                      # then open a new Terminal window
-git clone https://github.com/x96x64/history-music.git
-pipx install ./history-music
+git clone https://github.com/x96x64/HIStory.git
+pipx install ./HIStory
 ```
 
 After installing, `hist` works in any folder. To upgrade, run `git pull` in the clone, then
-`pipx install --force ./history-music`.
+`pipx install --force ./HIStory`.
 
 ## Quick start
 
