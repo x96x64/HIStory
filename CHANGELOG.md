@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-11-10
+
+### Changed
+
+- `hist watch` and `hist catalog add` move the spec of every album already in the catalog from `specs/` to
+  `state/history/`, so that `specs/` holds only albums that are still to be added.
+
 ## [1.2.0] - 2026-11-10
 
 ### Added
