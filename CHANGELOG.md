@@ -4,17 +4,26 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-11-10
+
+### Changed
+
+- The Python package is named `hist`, after the command, instead of `history_music`; `python -m hist` runs the
+  command. The command and the distribution name `history-music` are unchanged.
+- The package metadata, the command line help and `docs/commands.md` describe the project with the same sentence
+  as the repository.
+
 ## [2.0.0] - 2026-11-10
+
+### Changed
+
+- A relative `cover` in a spec file is taken relative to the spec file's folder instead of the catalog folder.
 
 ### Removed
 
 - The `specs/` folder of the catalog. `hist watch` no longer adds albums from it, and `hist init`,
   `hist doctor` and `hist catalog check` no longer look for it. Add a new album with
   `hist catalog add SPEC --from DIR`; the spec file can be kept anywhere.
-
-### Changed
-
-- A relative `cover` in a spec file is taken relative to the spec file's folder instead of the catalog folder.
 
 ## [1.2.0] - 2026-11-10
 
