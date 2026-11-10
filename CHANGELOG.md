@@ -10,11 +10,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - The distribution name is `hist`, the same as the command and the Python package, instead of `history-music`.
   Remove the old installation with `pipx uninstall history-music` before `pipx install ./HIStory`.
-- HIStory is kept locally and installed from its folder; the README no longer describes a clone.
+- HIStory is kept locally and installed from its folder.
 
 ### Removed
 
-- The GitHub Actions workflow, the README badges and the project URLs. Run the tests locally with
+- The online test workflow, the README badges and the project URLs. Run the tests locally with
   `python -m pytest`.
 
 ## [2.2.0] - 2026-11-10
@@ -34,8 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - The Python package is named `hist`, after the command, instead of `history_music`; `python -m hist` runs the
   command. The command and the distribution name `history-music` are unchanged.
-- The package metadata, the command line help and `docs/commands.md` describe the project with the same sentence
-  as the repository.
+- The package metadata, the command line help and `docs/commands.md` describe the project with one shared sentence.
 
 ## [2.0.0] - 2026-11-10
 
@@ -51,17 +50,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [1.2.0] - 2026-11-10
 
-### Added
-
-- A GitHub Actions workflow that runs the tests on macOS with Python 3.12 and the newest Python, and badges in
-  the README.
-
 ### Changed
 
 - `hist verify` reads metadata atoms and store purchase data for up to 40 files per exiftool run instead of one
   file per run, which makes it several times faster on a full library.
-- Installation is from a clone of the GitHub repository; build output is no longer kept in the project.
-- The repository is github.com/x96x64/HIStory, and the license's copyright line uses the sign ©.
+- Build output is no longer kept in the project.
+- The license's copyright line uses the sign ©.
 
 ### Removed
 
