@@ -1,9 +1,10 @@
+import hashlib
 import json
 
 import pytest
 
 from conftest import make_cover, needs_tools, spec
-from history_music import catalog
+from history_music import catalog, state
 
 
 def write_records(env, records):
@@ -71,3 +72,51 @@ def test_specs_with_undecided_composers_are_refused(env):
     s["tracks"][0]["composer"] = None
     with pytest.raises(catalog.CatalogError):
         catalog.add_spec(env.config(), s, d)
+
+
+A_COVER = hashlib.sha256(b"a").hexdigest()
+B_COVER = hashlib.sha256(b"b").hexdigest()
+
+
+def test_remove_album_cleans_every_file_of_the_catalog_folder(env):
+    other = record("Hit", 1)
+    other["file"] = "C/Other/01 Hit.m4a"
+    other["tags"].update({"ItemList:Album": "Other", "ItemList:AlbumArtist": "C", "ItemList:TrackNumber": "1 of 1"})
+    gone = [record("One", 1), record("Two", 2)]
+    for r in gone:
+        r["blobs"] = {"ItemList:CoverArt": [A_COVER]}
+    other["blobs"] = {"ItemList:CoverArt": [B_COVER]}
+    write_records(env, gone + [other])
+    (env.home / "covers").mkdir()
+    (env.home / "covers" / (A_COVER)).write_bytes(b"a")
+    (env.home / "covers" / (B_COVER)).write_bytes(b"b")
+    env.home.joinpath("dates.json").write_text(json.dumps({"entries": [
+        {"kind": "artist", "path": "A", "date": "1990-01-01"},
+        {"kind": "album", "path": "A/B", "date": "2000-01-01"},
+        {"kind": "artist", "path": "C", "date": "1991-01-01"},
+        {"kind": "album", "path": "C/Other", "date": "2001-01-01"}]}))
+    cfg = env.config()
+    state.added(cfg.state).add("Best Of", tracks=2)
+
+    preview = catalog.remove_album(cfg, "best", dry_run=True)
+    assert preview == {"album": "Best Of", "tracks": 2, "dates": ["A", "A/B"], "specs": [], "covers": [A_COVER]}
+    assert len(catalog.read_records(cfg)) == 3
+
+    catalog.remove_album(cfg, "best")
+    assert [r["file"] for r in catalog.read_records(cfg)] == ["C/Other/01 Hit.m4a"]
+    assert [e["path"] for e in json.loads(cfg.dates_file.read_text())["entries"]] == ["C", "C/Other"]
+    assert not (cfg.covers / (A_COVER)).exists() and (cfg.covers / (B_COVER)).exists()
+    assert "Best Of" not in state.added(cfg.state).names()
+    kept = {p.name.split(".")[0] for p in (cfg.state / "history").iterdir()}
+    assert {"tracks", "dates", A_COVER} <= kept
+    assert catalog.check(cfg) == []
+
+
+def test_remove_album_keeps_an_artist_entry_still_in_use(env):
+    write_records(env, [record("One", 1), record("Two", 2)])
+    env.home.joinpath("dates.json").write_text(json.dumps({"entries": [
+        {"kind": "artist", "path": "A", "date": "1990-01-01"},
+        {"kind": "album", "path": "A/B", "date": "2000-01-01"},
+        {"kind": "album", "path": "A/Later", "date": "2005-01-01"}]}))
+    removed = catalog.remove_album(env.config(), "best")
+    assert removed["dates"] == ["A/B"]

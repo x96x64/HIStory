@@ -27,6 +27,11 @@ from the catalog's, add it to `[match.aliases]`.
 Delete the album's old download folder first, so that old and new files do not mix, and remove the album from
 `state/converted.json` if it was converted before.
 
+**Removing an album for good.**
+Delete the album in the Music app yourself, then run `hist catalog remove "Album Name"` (try `--dry-run` first).
+It removes the album from the catalog folder, so that `hist watch`, `hist status` and `hist verify` no longer wait
+for it. The library folder and the Music app are not touched.
+
 **A track was paired with the wrong title.**
 Titles that contain one another (versions of one song) can be confused. Check the pairing and the durations with
 `hist convert --dry-run --only "Album Name"` before converting.

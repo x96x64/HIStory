@@ -29,7 +29,7 @@ Unpack the ZIP, then:
 ```sh
 brew install ffmpeg flac exiftool pipx
 pipx ensurepath                      # then open a new Terminal window
-pipx install ~/Downloads/HIStory-1.0.0
+pipx install ~/Downloads/history-music
 ```
 
 Use the path where you unpacked the ZIP. After installing, `hist` works in any folder, and the unpacked folder
@@ -37,7 +37,7 @@ is no longer needed. `pipx install` builds the package and needs a network conne
 without one, use the wheel in `dist/`:
 
 ```sh
-pipx install ~/Downloads/HIStory-1.0.0/dist/history_music-1.0.0-py3-none-any.whl
+pipx install ~/Downloads/history-music/dist/history_music-1.1.0-py3-none-any.whl
 ```
 
 To upgrade, run `pipx install --force` with the new folder.
@@ -76,7 +76,7 @@ hist verify --music             # final check of the library and the Music app
 | `hist stop` | Ask a running `watch` or `convert` to stop after the current album |
 | `hist dates list\|apply\|check\|script` | Folder and file dates in the library |
 | `hist verify [--music]` | Check the library against the catalog |
-| `hist catalog list\|show\|set\|unset\|add\|check\|import` | Read and edit the catalog |
+| `hist catalog list\|show\|set\|unset\|add\|remove\|check\|import` | Read and edit the catalog |
 | `hist retag PATH... [--apply]` | Write the catalog's tags back into existing files |
 | `hist refresh ALBUM` | Make the Music app re-read an album's files |
 | `hist evacuate [--dry-run]` | Move albums out of the library so that you can add them again |

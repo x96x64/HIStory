@@ -6,7 +6,8 @@ import signal
 import sys
 from pathlib import Path
 
-from history_music import __version__, catalog, config as config_mod, dates, state
+from history_music import __version__, catalog, config as config_mod, dates, proc, runtime, state
+from history_music.errors import HistError
 from history_music.log import log, long_running, setup
 
 EXIT_OK, EXIT_ERROR, EXIT_USAGE = 0, 1, 2
@@ -95,58 +96,68 @@ def cmd_watch(args, cfg) -> int:
 
 
 def cmd_stop(args, cfg) -> int:
-    stopped = 0
     pid = state.holder(cfg.state, "convert")
-    if pid and pid > 0:
-        os.kill(pid, signal.SIGTERM)
-        log.info(f"Asked hist (pid {pid}) to stop after the current album.")
-        stopped += 1
-    if not stopped:
+    if not pid or pid < 0:
         log.info("Nothing is running.")
+        return EXIT_OK
+    os.kill(pid, signal.SIGTERM)
+    log.info(f"Asked hist (pid {pid}) to stop after the current album.")
     return EXIT_OK
 
 
-def cmd_dates(args, cfg) -> int:
-    entries = dates.select(dates.entries(cfg.dates_file), args.only)
-    root = cfg.library
-    if args.action == "script":
-        for e in entries:
-            print(dates.shell_line(e, root))
-        return EXIT_OK
-    if args.action == "check":
-        folders = files = 0
-        wrong, covered = [], set()
-        for e in entries:
-            if not (root / e["path"]).is_dir():
-                continue
-            bad = {item for item, _, _ in dates.check(e, root)}
-            for item in dates.items(e, root):
-                if item in bad:
-                    wrong.append(str(item.relative_to(root)))
-                if item.is_dir():
-                    folders += 1
-                else:
-                    files += 1
-                    covered.add(str(item))
-        in_library = {os.path.join(d, f) for d, _, names in os.walk(root) for f in names if f.endswith(".m4a")}
-        for w in wrong:
-            log.info(f"  wrong date: {w}")
-        log.info(f"Checked {folders} folders and {files} files: "
-                 + (f"{len(wrong)} with a wrong date" if wrong else "no mismatches"))
-        uncovered = len(in_library - covered) if not args.only else 0
-        if uncovered:
-            log.warning(f"{uncovered} .m4a files of the library are not covered by dates.json")
-        return EXIT_ERROR if wrong else EXIT_OK
-    failed = done = skipped = 0
+def entry_label(entry: dict) -> str:
+    return f"{entry['date']:%Y-%m-%d}  {entry['kind']:6}  {entry['path']}"
+
+
+def dates_list(entries: list, root: Path) -> int:
     for e in entries:
         here = (root / e["path"]).is_dir()
-        label = f"{e['date']:%Y-%m-%d}  {e['kind']:6}  {e['path']}"
-        if args.action == "list" or not here:
-            log.info(f"{label}: " + ("in the library" if here else "not in the library"))
-            skipped += not here
+        log.info(f"{entry_label(e)}: " + ("in the library" if here else "not in the library"))
+    return EXIT_OK
+
+
+def dates_script(entries: list, root: Path) -> int:
+    for e in entries:
+        print(dates.shell_line(e, root))
+    return EXIT_OK
+
+
+def dates_check(entries: list, root: Path, whole_library: bool) -> int:
+    folders = files = 0
+    wrong, covered = [], set()
+    for e in entries:
+        if not (root / e["path"]).is_dir():
             continue
-        if args.dry_run:
-            log.info(f"{label}: would set {len(dates.items(e, root))} items")
+        bad = {item for item, _, _ in dates.check(e, root)}
+        for item in dates.items(e, root):
+            if item in bad:
+                wrong.append(str(item.relative_to(root)))
+            if item.is_dir():
+                folders += 1
+            else:
+                files += 1
+                covered.add(str(item))
+    for w in wrong:
+        log.info(f"  wrong date: {w}")
+    log.info(f"Checked {folders} folders and {files} files: "
+             + (f"{len(wrong)} with a wrong date" if wrong else "no mismatches"))
+    if whole_library:
+        in_library = {os.path.join(d, f) for d, _, names in os.walk(root) for f in names if f.endswith(".m4a")}
+        uncovered = len(in_library - covered)
+        if uncovered:
+            log.warning(f"{uncovered} .m4a files of the library are not covered by dates.json")
+    return EXIT_ERROR if wrong else EXIT_OK
+
+
+def dates_apply(entries: list, root: Path, dry_run: bool) -> int:
+    failed = done = skipped = 0
+    for e in entries:
+        if not (root / e["path"]).is_dir():
+            log.info(f"{entry_label(e)}: not in the library")
+            skipped += 1
+            continue
+        if dry_run:
+            log.info(f"{entry_label(e)}: would set {len(dates.items(e, root))} items")
             continue
         try:
             dates.apply(e, root)
@@ -157,10 +168,22 @@ def cmd_dates(args, cfg) -> int:
         wrong = dates.check(e, root)
         done += 1
         failed += bool(wrong)
-        log.info(f"{label}: {len(dates.items(e, root))} items set" + (f", {len(wrong)} still differ" if wrong else ""))
-    if args.action == "apply" and not args.dry_run:
+        log.info(f"{entry_label(e)}: {len(dates.items(e, root))} items set"
+                 + (f", {len(wrong)} still differ" if wrong else ""))
+    if not dry_run:
         log.info(f"Entries set: {done}, not in the library: {skipped}, problems: {failed}")
     return EXIT_ERROR if failed else EXIT_OK
+
+
+def cmd_dates(args, cfg) -> int:
+    entries = dates.select(dates.entries(cfg.dates_file), args.only)
+    if args.action == "list":
+        return dates_list(entries, cfg.library)
+    if args.action == "script":
+        return dates_script(entries, cfg.library)
+    if args.action == "check":
+        return dates_check(entries, cfg.library, whole_library=not args.only)
+    return dates_apply(entries, cfg.library, args.dry_run)
 
 
 def cmd_verify(args, cfg) -> int:
@@ -204,6 +227,21 @@ def cmd_catalog(args, cfg) -> int:
                  f"{n} tracks" + (" (the previous tracks.json is kept in state/history)" if changed else ""))
         if changed:
             log.info("Converted files keep their old tags until 'hist retag PATH --apply' is run.")
+        return EXIT_OK
+    if action == "remove":
+        removed = catalog.remove_album(cfg, args.album, dry_run=args.dry_run)
+        verb = "Would remove" if args.dry_run else "Removed"
+        log.info(f"{verb} {removed['album']} from the catalog: {removed['tracks']} tracks, "
+                 f"{len(removed['dates'])} dates entries, {len(removed['specs'])} specs, "
+                 f"{len(removed['covers'])} covers")
+        for path in removed["dates"]:
+            log.info(f"  dates entry: {path}")
+        for name in removed["specs"]:
+            log.info(f"  spec: specs/{name}")
+        for digest in removed["covers"]:
+            log.info(f"  cover: covers/{digest}")
+        if not args.dry_run:
+            log.info("The previous files are kept in state/history. The library and the Music app were not changed.")
         return EXIT_OK
     if action == "add":
         spec = catalog.read_spec(Path(args.spec).expanduser())
@@ -320,7 +358,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--allow-missing", action="store_true", help="do not fail because tracks are missing")
     p.add_argument("--no-decode", action="store_true", help="skip decoding every file")
 
-    p = add("catalog", cmd_catalog, "list, show, edit, add to and check the catalog")
+    p = add("catalog", cmd_catalog, "list, show, edit, add to, remove from and check the catalog")
     actions = p.add_subparsers(dest="action", metavar="<action>", required=True)
     actions.add_parser("list", help="list the albums, oldest release first")
     a = actions.add_parser("show", help="show the tracks of an album, or every tag of one track")
@@ -342,6 +380,10 @@ def build_parser() -> argparse.ArgumentParser:
     a.add_argument("spec")
     a.add_argument("--from", dest="source", required=True, metavar="DIR", help="the album's FLAC folder")
     a.add_argument("--dry-run", action="store_true")
+    a = actions.add_parser("remove", help="remove an album from the catalog (after you removed it from the Music "
+                                          "app); the library is not touched")
+    a.add_argument("album", help="text contained in the album name")
+    a.add_argument("--dry-run", action="store_true", help="show what would be removed")
     actions.add_parser("check", help="check the catalog files for consistency")
     a = actions.add_parser("import", help="start an empty catalog from the tags of an existing library folder")
     a.add_argument("folder")
@@ -372,7 +414,6 @@ def main(argv=None) -> int:
     if not args.command:
         parser.print_help()
         return EXIT_USAGE
-    from history_music import convert, evacuate, media, music_app, proc, runtime, store
     home = config_mod.resolve_home(args.home)
     try:
         if args.func is cmd_init:
@@ -395,7 +436,6 @@ def main(argv=None) -> int:
     except proc.ToolError as error:
         log.error(f"{error}; run 'hist doctor'")
         return EXIT_ERROR
-    except (catalog.CatalogError, convert.ConvertError, media.MediaError, dates.DatesError,
-            music_app.MusicError, store.StoreError, evacuate.EvacuateError) as error:
+    except HistError as error:
         log.error(str(error))
         return EXIT_ERROR

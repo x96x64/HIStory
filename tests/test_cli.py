@@ -63,3 +63,24 @@ def test_stop_with_nothing_running(capsys):
     main(["init"])
     assert main(["stop"]) == 0
     assert "Nothing is running" in capsys.readouterr().out
+
+
+def test_doctor_reports_a_broken_catalog_instead_of_crashing(tmp_path, capsys):
+    main(["init"])
+    (tmp_path / "home" / "tracks.json").write_text("{not json")
+    assert main(["doctor"]) == 1
+    assert "problems" in capsys.readouterr().out
+
+
+def test_catalog_remove_from_the_command_line(tmp_path, capsys):
+    main(["init"])
+    record = {"file": "A/B/01 T.m4a", "tags": {"ItemList:Title": "T", "ItemList:Album": "B",
+                                               "ItemList:AlbumArtist": "A", "ItemList:Artist": "A",
+                                               "ItemList:TrackNumber": "1 of 1", "ItemList:DiskNumber": "1 of 1",
+                                               "ItemList:ContentCreateDate": "2000:01:01 00:00:00Z"}, "blobs": {}}
+    (tmp_path / "home" / "tracks.json").write_text(json.dumps({"format": 2, "tracks": [record]}))
+    assert main(["catalog", "remove", "B", "--dry-run"]) == 0
+    assert "Would remove B" in capsys.readouterr().out
+    assert main(["catalog", "remove", "B"]) == 0
+    assert json.loads((tmp_path / "home" / "tracks.json").read_text())["tracks"] == []
+    assert main(["catalog", "remove", "B"]) == 1

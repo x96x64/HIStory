@@ -10,6 +10,7 @@ from pathlib import Path
 
 from history_music import matching, proc, state, tags
 from history_music.config import Config
+from history_music.errors import HistError
 from history_music.tags import Track
 
 FORMAT = 2
@@ -19,7 +20,7 @@ PROTECTED_REMOVE = {"ItemList:DiskNumber", "ItemList:Title", "ItemList:Album", "
                     "ItemList:Artist", "ItemList:TrackNumber"}
 
 
-class CatalogError(Exception):
+class CatalogError(HistError):
     pass
 
 
@@ -102,6 +103,51 @@ def set_tag(config: Config, album_text: str, tag: str, value: str | None, disc=N
     return album, changed, len(picked)
 
 
+def remove_album(config: Config, album_text: str, dry_run: bool = False) -> dict:
+    """Remove an album from the catalog folder; the library and the Music app are not touched.
+
+    Removed: the album's tracks, its dates.json entries (and its artist's, when no other album of that artist is
+    left), its progress records, its spec, and covers that nothing else uses. Every changed file is kept in
+    state/history first. Returns what was (or, with dry_run, would be) removed.
+    """
+    records = read_records(config)
+    album = select_album(records, album_text)
+    keep = [r for r in records if r["tags"]["ItemList:Album"] != album]
+    gone = [r for r in records if r["tags"]["ItemList:Album"] == album]
+    folders = {r["file"].rsplit("/", 1)[0] for r in gone}
+
+    doc = json.loads(config.dates_file.read_text(encoding="utf-8")) if config.dates_file.exists() else {"entries": []}
+    left = [e for e in doc["entries"] if not (e.get("kind") == "album" and e.get("path") in folders)]
+    artists_in_use = {r["file"].split("/")[0] for r in keep} | {e["path"].split("/")[0] for e in left
+                                                                if e.get("kind") == "album"}
+    left = [e for e in left if not (e.get("kind") == "artist" and e.get("path") not in artists_in_use)]
+    dates_removed = [e["path"] for e in doc["entries"] if e not in left]
+
+    specs = [path for path, spec in all_specs(config) if spec["album"] == album]
+    spec_texts = [p.read_text(encoding="utf-8") for p in config.specs.glob("*.json") if p not in specs] \
+        if config.specs.is_dir() else []
+    used = {h for r in keep for hashes in r["blobs"].values() for h in hashes}
+    covers = sorted({h for r in gone for hashes in r["blobs"].values() for h in hashes} - used)
+    covers = [h for h in covers if (config.covers / h).exists() and not any(h in t for t in spec_texts)]
+
+    if not dry_run:
+        history = config.state / "history"
+        write_records(config, keep)
+        if dates_removed:
+            state.keep_history(config.dates_file, history)
+            state.write_json(config.dates_file, {**doc, "entries": left})
+        for path in specs:
+            state.keep_history(path, history)
+            path.unlink()
+        for digest in covers:
+            state.keep_history(config.covers / digest, history)
+            (config.covers / digest).unlink()
+        state.added(config.state).remove(album)
+        state.converted(config.state).remove(album)
+    return {"album": album, "tracks": len(gone), "dates": dates_removed, "specs": [p.name for p in specs],
+            "covers": covers}
+
+
 # ------------------------------------------------------------------- specs
 
 def read_spec(path: Path) -> dict:
@@ -178,14 +224,16 @@ def add_spec(config: Config, spec: dict, flac_dir: Path, dry_run: bool = False) 
     return len(records)
 
 
+def all_specs(config: Config) -> list:
+    """(path, spec) of every spec file, sorted by file name."""
+    paths = sorted(config.specs.glob("*.json")) if config.specs.is_dir() else []
+    return [(path, read_spec(path)) for path in paths]
+
+
 def pending_specs(config: Config) -> list:
     """Specs whose album is not in the catalog yet, oldest release first."""
     names = {r["tags"]["ItemList:Album"] for r in read_records(config)}
-    out = []
-    for path in sorted(config.specs.glob("*.json")) if config.specs.is_dir() else []:
-        spec = read_spec(path)
-        if spec["album"] not in names:
-            out.append((path, spec))
+    out = [(path, spec) for path, spec in all_specs(config) if spec["album"] not in names]
     return sorted(out, key=lambda item: item[1]["release"])
 
 

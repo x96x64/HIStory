@@ -160,6 +160,13 @@ The previous `tracks.json` is kept in `state/history/`.
 `add SPEC --from DIR [--dry-run]`
 : Add an album from a spec file and the folder of its downloaded FLAC files.
 
+`remove ALBUM [--dry-run]`
+: Remove an album from the catalog folder after you have removed it from the Music app: its tracks, its
+`dates.json` entries (and its artist's entry when no other album of that artist is left), its records in
+`state/added.json` and `state/converted.json`, its spec, and covers that nothing else uses. Every changed or
+deleted file is kept in `state/history/` first. The library folder and the Music app are not touched. With
+`--dry-run`, show what would be removed.
+
 `check`
 : Check the catalog files for consistency; exits 1 on any problem.
 

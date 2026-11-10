@@ -95,7 +95,7 @@ Rules:
 - Text inside `()` belongs to the title; a second qualifier after one in `()` goes in `[]`, for example
   `Song (feat. Guest) [Live]`.
 
-Every change made by `hist catalog set` or `unset` keeps the previous file in `state/history/`.
+Every change made by `hist catalog set`, `unset` or `remove` keeps the previous file in `state/history/`.
 
 ## specs/
 
