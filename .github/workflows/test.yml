@@ -21,6 +21,6 @@ jobs:
       - name: Install the package
         run: python -m pip install -e '.[test]' pyflakes
       - name: Check the code
-        run: python -m pyflakes history_music tests
+        run: python -m pyflakes hist tests
       - name: Run the tests
         run: python -m pytest

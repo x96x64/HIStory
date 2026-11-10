@@ -2,8 +2,8 @@
 import shutil
 import sys
 
-from history_music import catalog, dates, media, proc, state
-from history_music.config import Config
+from hist import catalog, dates, media, proc, state
+from hist.config import Config
 
 
 def run(config: Config) -> int:

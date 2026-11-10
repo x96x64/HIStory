@@ -1,5 +1,5 @@
 from conftest import needs_tools, spec
-from history_music import catalog, convert, media, state, tags
+from hist import catalog, convert, media, state, tags
 
 pytestmark = needs_tools
 

@@ -7,8 +7,8 @@ import datetime
 import subprocess
 import time
 
-from history_music import proc
-from history_music.errors import HistError
+from hist import proc
+from hist.errors import HistError
 
 QUERY = """on run argv
 	set albumName to item 1 of argv

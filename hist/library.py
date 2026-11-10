@@ -8,9 +8,9 @@ checked and dated again when it comes back.
 import time
 from pathlib import Path
 
-from history_music import catalog, dates, state, tags
-from history_music.config import Config
-from history_music.log import log
+from hist import catalog, dates, state, tags
+from hist.config import Config
+from hist.log import log
 
 SETTLE_SECONDS = 10
 

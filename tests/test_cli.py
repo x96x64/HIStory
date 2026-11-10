@@ -2,8 +2,8 @@ import json
 
 import pytest
 
-from history_music import __version__
-from history_music.cli import main
+from hist import __version__
+from hist.cli import main
 
 
 def test_version(capsys):
@@ -55,7 +55,7 @@ def test_dates_on_an_empty_catalog(capsys):
 def test_hist_never_adds_albums_to_music(capsys):
     with pytest.raises(SystemExit):
         main(["register"])
-    from history_music.cli import build_parser
+    from hist.cli import build_parser
     assert "register" not in build_parser().format_help()
 
 

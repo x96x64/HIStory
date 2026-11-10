@@ -6,9 +6,9 @@ import signal
 import sys
 from pathlib import Path
 
-from history_music import __version__, catalog, config as config_mod, dates, proc, runtime, state
-from history_music.errors import HistError
-from history_music.log import log, long_running, setup
+from hist import __version__, catalog, config as config_mod, dates, proc, runtime, state
+from hist.errors import HistError
+from hist.log import log, long_running, setup
 
 EXIT_OK, EXIT_ERROR, EXIT_USAGE = 0, 1, 2
 
@@ -54,23 +54,23 @@ def cmd_init(args, home: Path) -> int:
 
 
 def cmd_doctor(args, cfg) -> int:
-    from history_music import doctor
+    from hist import doctor
     return doctor.run(cfg)
 
 
 def cmd_status(args, cfg) -> int:
-    from history_music import status
-    from history_music.music_app import MusicApp
+    from hist import status
+    from hist.music_app import MusicApp
     return status.run(cfg, MusicApp() if args.music else None)
 
 
 def convert_options(args):
-    from history_music import convert
+    from hist import convert
     return convert.Options(only=args.only or "", keep_flac=args.keep_flac, dry_run=getattr(args, "dry_run", False))
 
 
 def cmd_convert(args, cfg) -> int:
-    from history_music import convert
+    from hist import convert
     options = convert_options(args)
     if options.dry_run:
         convert.run_once(cfg, options)
@@ -85,7 +85,7 @@ def cmd_convert(args, cfg) -> int:
 
 
 def cmd_watch(args, cfg) -> int:
-    from history_music import runtime, watch
+    from hist import runtime, watch
     stopper = runtime.Stopper().install()
     with state.Lock(cfg.state, "convert"):
         long_running(Path(args.log).expanduser() if args.log else cfg.state / "logs" / "watch.log")
@@ -185,8 +185,8 @@ def cmd_dates(args, cfg) -> int:
 
 
 def cmd_verify(args, cfg) -> int:
-    from history_music import verify
-    from history_music.music_app import MusicApp
+    from hist import verify
+    from hist.music_app import MusicApp
     roots = [Path(p).expanduser() for p in args.path] if args.path else [cfg.library]
     if args.downloads:
         roots += list(cfg.sources)
@@ -260,13 +260,13 @@ def cmd_catalog(args, cfg) -> int:
 
 
 def cmd_retag(args, cfg) -> int:
-    from history_music import retag
+    from hist import retag
     return retag.run(cfg, [Path(p).expanduser() for p in args.paths], args.apply, args.fields or "", args.prune,
                      args.verbose_list)
 
 
 def cmd_refresh(args, cfg) -> int:
-    from history_music.music_app import MusicApp
+    from hist.music_app import MusicApp
     music = MusicApp()
     records = catalog.read_records(cfg)
     name = catalog.select_album(records, args.album)
@@ -281,14 +281,14 @@ def cmd_refresh(args, cfg) -> int:
 
 
 def cmd_evacuate(args, cfg) -> int:
-    from history_music import evacuate
-    from history_music.music_app import MusicApp
+    from hist import evacuate
+    from hist.music_app import MusicApp
     return evacuate.run(cfg, MusicApp(), args.album or "", args.dry_run)
 
 
 def cmd_store_entries(args, cfg) -> int:
-    from history_music import store
-    from history_music.music_app import MusicApp
+    from hist import store
+    from hist.music_app import MusicApp
     return store.run(cfg, MusicApp(), args.delete)
 
 

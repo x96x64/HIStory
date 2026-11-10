@@ -4,7 +4,7 @@ import json
 import pytest
 
 from conftest import make_cover, needs_tools, spec
-from history_music import catalog, state
+from hist import catalog, state
 
 
 def write_records(env, records):

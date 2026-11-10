@@ -2,9 +2,9 @@
 import collections
 from pathlib import Path
 
-from history_music import catalog, convert, matching, state
-from history_music.config import Config
-from history_music.music_app import MusicApp
+from hist import catalog, convert, matching, state
+from hist.config import Config
+from hist.music_app import MusicApp
 
 
 def run(config: Config, music: MusicApp | None) -> int:

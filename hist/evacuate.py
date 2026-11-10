@@ -8,11 +8,11 @@ import os
 import time
 from pathlib import Path
 
-from history_music import catalog, state, tags
-from history_music.config import Config
-from history_music.errors import HistError
-from history_music.log import log
-from history_music.music_app import MusicApp
+from hist import catalog, state, tags
+from hist.config import Config
+from hist.errors import HistError
+from hist.log import log
+from hist.music_app import MusicApp
 
 
 class EvacuateError(HistError):

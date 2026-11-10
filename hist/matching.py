@@ -6,8 +6,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
-from history_music import media
-from history_music.tags import Track, first, pick, read_tracks, similarity
+from hist import media
+from hist.tags import Track, first, pick, read_tracks, similarity
 
 SOURCE_EXT = (".flac", ".m4a")
 PARTIAL_SUFFIXES = (".part", ".crdownload", ".download", ".tmp", ".partial")

@@ -6,7 +6,7 @@ import shutil
 import time
 from pathlib import Path
 
-from history_music.errors import HistError
+from hist.errors import HistError
 
 
 def write_json(path: Path, data) -> None:

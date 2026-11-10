@@ -9,7 +9,7 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from history_music.errors import HistError
+from hist.errors import HistError
 
 DEFAULT_HOME = "~/Library/Application Support/HIStory"
 DEFAULT_LIBRARY = "~/Music/Music/Media.localized/Music"

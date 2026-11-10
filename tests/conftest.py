@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from history_music import catalog, config, music_app, tags
+from hist import catalog, config, music_app, tags
 
 TOOLS = ("ffmpeg", "ffprobe", "flac", "metaflac", "exiftool")
 needs_tools = pytest.mark.skipif(any(shutil.which(t) is None for t in TOOLS), reason="audio tools are not installed")

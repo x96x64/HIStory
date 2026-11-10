@@ -5,7 +5,7 @@ import shutil
 
 import pytest
 
-from history_music import dates
+from hist import dates
 
 needs_setfile = pytest.mark.skipif(shutil.which("SetFile") is None, reason="SetFile is not installed")
 

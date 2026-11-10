@@ -3,10 +3,10 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
-from history_music import catalog, matching, state, tags
-from history_music.config import Config
-from history_music.log import log
-from history_music.tags import Match
+from hist import catalog, matching, state, tags
+from hist.config import Config
+from hist.log import log
+from hist.tags import Match
 
 
 def snapshot(config: Config, found: list) -> Path:

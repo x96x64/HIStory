@@ -9,8 +9,8 @@ import json
 import os
 from pathlib import Path
 
-from history_music import proc
-from history_music.errors import HistError
+from hist import proc
+from hist.errors import HistError
 
 MEDIA = (".m4a", ".m4v")
 

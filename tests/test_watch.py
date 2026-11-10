@@ -9,7 +9,7 @@ import threading
 import pytest
 
 from conftest import needs_tools, spec
-from history_music import convert, library, runtime, state, watch
+from hist import convert, library, runtime, state, watch
 
 pytestmark = needs_tools
 

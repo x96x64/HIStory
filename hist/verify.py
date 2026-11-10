@@ -4,10 +4,10 @@ import os
 import re
 from pathlib import Path
 
-from history_music import catalog, media, tags
-from history_music.config import Config
-from history_music.log import log
-from history_music.music_app import MusicApp
+from hist import catalog, media, tags
+from hist.config import Config
+from hist.log import log
+from hist.music_app import MusicApp
 
 
 def run(config: Config, roots: list, allow_missing: bool, decode: bool, music: MusicApp | None) -> int:

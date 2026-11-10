@@ -14,8 +14,8 @@ from difflib import SequenceMatcher
 from functools import lru_cache
 from pathlib import Path
 
-from history_music import proc
-from history_music.log import log
+from hist import proc
+from hist.log import log
 
 TAG_GROUPS = ("ItemList", "UserData", "Keys", "ID3", "Vorbis", "APE", "XMP")
 STRIP_GROUPS = ("ItemList", "UserData", "Keys", "XMP")

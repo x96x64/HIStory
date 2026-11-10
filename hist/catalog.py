@@ -8,10 +8,10 @@ import json
 import os
 from pathlib import Path
 
-from history_music import matching, proc, state, tags
-from history_music.config import Config
-from history_music.errors import HistError
-from history_music.tags import Track
+from hist import matching, proc, state, tags
+from hist.config import Config
+from hist.errors import HistError
+from hist.tags import Track
 
 FORMAT = 2
 POLICY_DROP = ("ItemList:Comment", "ItemList:Encoder")

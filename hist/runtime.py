@@ -9,7 +9,7 @@ import signal
 import subprocess
 from contextlib import contextmanager
 
-from history_music.log import log
+from hist.log import log
 
 
 class Stopped(Exception):

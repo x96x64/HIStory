@@ -6,10 +6,10 @@ their dates. The watch ends by itself when every album of the catalog is convert
 """
 import time
 
-from history_music import convert, library, state, tags
-from history_music.config import Config
-from history_music.log import log
-from history_music.runtime import Stopper
+from hist import convert, library, state, tags
+from hist.config import Config
+from hist.log import log
+from hist.runtime import Stopper
 
 HEARTBEAT = 1500
 

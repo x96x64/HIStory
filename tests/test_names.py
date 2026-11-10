@@ -2,8 +2,8 @@ import subprocess
 
 import pytest
 
-from history_music import matching, music_app, proc, tags
-from history_music.tags import Track
+from hist import matching, music_app, proc, tags
+from hist.tags import Track
 
 
 def track(title, album="Album", artist="Artist", number="1 of 2", disc="1 of 1"):

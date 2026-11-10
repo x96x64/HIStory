@@ -11,11 +11,11 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from history_music import catalog, matching, media, proc, state, tags
-from history_music.config import Config
-from history_music.errors import HistError
-from history_music.log import log
-from history_music.tags import Track
+from hist import catalog, matching, media, proc, state, tags
+from hist.config import Config
+from hist.errors import HistError
+from hist.log import log
+from hist.tags import Track
 
 
 class ConvertError(HistError):
