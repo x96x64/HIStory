@@ -8,6 +8,7 @@ import subprocess
 import time
 
 from history_music import proc
+from history_music.errors import HistError
 
 QUERY = """on run argv
 	set albumName to item 1 of argv
@@ -70,7 +71,7 @@ DELETE_IDS = """on run argv
 end run"""
 
 
-class MusicError(Exception):
+class MusicError(HistError):
     pass
 
 

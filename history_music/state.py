@@ -6,6 +6,8 @@ import shutil
 import time
 from pathlib import Path
 
+from history_music.errors import HistError
+
 
 def write_json(path: Path, data) -> None:
     """Write JSON atomically (a temporary file, then a rename)."""
@@ -73,7 +75,7 @@ def keep_history(path: Path, history_dir: Path) -> Path | None:
     return target
 
 
-class LockHeld(Exception):
+class LockHeld(HistError):
     def __init__(self, path: Path, pid: str):
         super().__init__(f"{path.stem} is already running (pid {pid or '?'})")
         self.pid = pid

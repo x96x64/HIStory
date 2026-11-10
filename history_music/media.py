@@ -6,10 +6,11 @@ import shutil
 from pathlib import Path
 
 from history_music import proc, tags
+from history_music.errors import HistError
 from history_music.tags import Match, Track
 
 
-class MediaError(Exception):
+class MediaError(HistError):
     pass
 
 

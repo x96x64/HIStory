@@ -13,11 +13,12 @@ from pathlib import Path
 
 from history_music import catalog, matching, media, proc, state, tags
 from history_music.config import Config
+from history_music.errors import HistError
 from history_music.log import log
 from history_music.tags import Track
 
 
-class ConvertError(Exception):
+class ConvertError(HistError):
     pass
 
 

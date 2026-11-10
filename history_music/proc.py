@@ -6,8 +6,10 @@ finish the current album before it stops. If hist itself is interrupted while a 
 import shutil
 import subprocess
 
+from history_music.errors import HistError
 
-class ToolError(Exception):
+
+class ToolError(HistError):
     """A required external tool is missing."""
 
 

@@ -9,9 +9,12 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from history_music.errors import HistError
+
 DEFAULT_HOME = "~/Library/Application Support/HIStory"
 DEFAULT_LIBRARY = "~/Music/Music/Media.localized/Music"
 DEFAULT_AUTO_ADD = "~/Music/Music/Media.localized/Automatically Add to Music.localized"
+DEFAULT_EVACUATION = "~/Music/HIStory Evacuated"
 
 TEMPLATE = """\
 # HIStory configuration. See docs/catalog-format.md for every key.
@@ -45,7 +48,7 @@ min_free_gb = 10
 """
 
 
-class ConfigError(Exception):
+class ConfigError(HistError):
     """config.toml is missing values or holds wrong ones."""
 
 
@@ -60,7 +63,7 @@ class Config:
     downloads: tuple = ()
     library: Path = Path(DEFAULT_LIBRARY).expanduser()
     auto_add: Path = Path(DEFAULT_AUTO_ADD).expanduser()
-    evacuation: Path = Path("~/Music/HIStory Evacuated").expanduser()
+    evacuation: Path = Path(DEFAULT_EVACUATION).expanduser()
     min_free_gb: float = 10.0
     store_album: str | None = None
     store_file: str | None = None
@@ -138,7 +141,7 @@ def load(home: Path, downloads_override=None) -> Config:
         downloads=tuple(path(d) for d in downloads),
         library=path(paths.get("library", DEFAULT_LIBRARY)),
         auto_add=path(paths.get("auto_add", DEFAULT_AUTO_ADD)),
-        evacuation=path(paths.get("evacuation", "~/Music/HIStory Evacuated")),
+        evacuation=path(paths.get("evacuation", DEFAULT_EVACUATION)),
         min_free_gb=float(data.get("convert", {}).get("min_free_gb", 10)),
         store_album=store.get("album"),
         store_file=store.get("file"),

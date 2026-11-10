@@ -10,11 +10,12 @@ import os
 from pathlib import Path
 
 from history_music import proc
+from history_music.errors import HistError
 
 MEDIA = (".m4a", ".m4v")
 
 
-class DatesError(Exception):
+class DatesError(HistError):
     pass
 
 
