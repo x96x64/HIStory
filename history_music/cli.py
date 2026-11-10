@@ -297,7 +297,7 @@ def cmd_store_entries(args, cfg) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="hist",
-        description="Rebuild an Apple Music library from FLAC downloads with exact, verified metadata.",
+        description="Rebuild an Apple Music library on macOS from FLAC downloads with exact, verified tags.",
         epilog="Run 'hist <command> --help' for the options of a command.")
     parser.add_argument("--version", action="version", version=f"hist {__version__}")
     parser.add_argument("--home", metavar="DIR", help="catalog folder (default: $HISTORY_HOME or "

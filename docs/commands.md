@@ -2,7 +2,7 @@
 
 ## NAME
 
-hist - rebuild an Apple Music library from FLAC downloads with exact, verified metadata
+hist - rebuild an Apple Music library on macOS from FLAC downloads with exact, verified tags
 
 ## SYNOPSIS
 
