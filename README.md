@@ -24,23 +24,15 @@ its folder and files.
 
 ## Installation
 
-Unpack the ZIP, then:
-
 ```sh
 brew install ffmpeg flac exiftool pipx
 pipx ensurepath                      # then open a new Terminal window
-pipx install ~/Downloads/history-music
+git clone https://github.com/x96x64/history-music.git
+pipx install ./history-music
 ```
 
-Use the path where you unpacked the ZIP. After installing, `hist` works in any folder, and the unpacked folder
-is no longer needed. `pipx install` builds the package and needs a network connection the first time. To install
-without one, use the wheel in `dist/`:
-
-```sh
-pipx install ~/Downloads/history-music/dist/history_music-1.1.0-py3-none-any.whl
-```
-
-To upgrade, run `pipx install --force` with the new folder.
+After installing, `hist` works in any folder. To upgrade, run `git pull` in the clone, then
+`pipx install --force ./history-music`.
 
 ## Quick start
 
@@ -102,6 +94,11 @@ python3 -m venv .venv && .venv/bin/pip install -e '.[test]'
 ```
 
 The tests generate short FLAC files with ffmpeg and never touch your library or the Music app.
+
+## Contributors
+
+- [x96x64](https://github.com/x96x64)
+- [Claude](https://github.com/claude) (@claude)
 
 ## License
 
