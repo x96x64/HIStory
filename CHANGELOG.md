@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-11-10
+
+### Changed
+
+- The distribution name is `hist`, the same as the command and the Python package, instead of `history-music`.
+  Remove the old installation with `pipx uninstall history-music` before `pipx install ./HIStory`.
+- HIStory is kept locally and installed from its folder; the README no longer describes a clone.
+
+### Removed
+
+- The GitHub Actions workflow, the README badges and the project URLs. Run the tests locally with
+  `python -m pytest`.
+
 ## [2.2.0] - 2026-11-10
 
 ### Changed
