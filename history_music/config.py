@@ -83,10 +83,6 @@ class Config:
         return self.home / "covers"
 
     @property
-    def specs(self) -> Path:
-        return self.home / "specs"
-
-    @property
     def dates_file(self) -> Path:
         return self.home / "dates.json"
 

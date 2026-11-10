@@ -29,7 +29,7 @@ def test_init_creates_an_empty_catalog(tmp_path):
     assert main(["init"]) == 0
     assert (home / "config.toml").exists()
     assert json.loads((home / "tracks.json").read_text()) == {"format": 2, "tracks": []}
-    assert (home / "covers").is_dir() and (home / "specs").is_dir()
+    assert (home / "covers").is_dir() and not (home / "specs").exists()
 
 
 def test_init_from_copies_a_catalog_and_refuses_to_overwrite(tmp_path):

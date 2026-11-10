@@ -40,7 +40,7 @@ commands write only to the catalog folder and the download folders.
 ### hist init [--from DIR] [--force]
 
 Create the catalog folder with an example `config.toml`, an empty `tracks.json` and `dates.json`. With `--from`,
-copy an existing catalog (`config.toml`, `tracks.json`, `covers/`, `specs/`, `dates.json`) into it and check it.
+copy an existing catalog (`config.toml`, `tracks.json`, `covers/`, `dates.json`) into it and check it.
 A catalog that already holds tracks is replaced only with `--force`.
 
 ### hist doctor
@@ -82,8 +82,8 @@ replaced; a FLAC file is deleted only after its M4A passed every check.
 
 Look at the download folders and the library every 10 seconds.
 
-Downloads: add albums from `specs/` to the catalog when their download is complete, move the spec of every album
-already in the catalog to `state/history/`, and convert every complete download as `hist convert` does.
+Downloads: convert every complete download of an album in the catalog as `hist convert` does. Add a new album
+to the catalog first with `hist catalog add`.
 
 Library: you add the converted albums to the Music app yourself (drag the album folder into the Music window, or
 File > Add to Library). When an album appears in the library folder and its files stop changing, `hist watch`
@@ -158,13 +158,13 @@ The previous `tracks.json` is kept in `state/history/`.
 : Remove a tag. Title, Album, AlbumArtist, Artist, TrackNumber and DiskNumber cannot be removed.
 
 `add SPEC --from DIR [--dry-run]`
-: Add an album from a spec file and the folder of its downloaded FLAC files. Afterwards, specs in `specs/` whose album is
-in the catalog are moved to `state/history/`.
+: Add an album from a spec file and the folder of its downloaded FLAC files. The spec file can be kept anywhere;
+see docs/catalog-format.md.
 
 `remove ALBUM [--dry-run]`
 : Remove an album from the catalog folder after you have removed it from the Music app: its tracks, its
 `dates.json` entries (and its artist's entry when no other album of that artist is left), its records in
-`state/added.json` and `state/converted.json`, its spec, and covers that nothing else uses. Every changed or
+`state/added.json` and `state/converted.json`, and covers that nothing else uses. Every changed or
 deleted file is kept in `state/history/` first. The library folder and the Music app are not touched. With
 `--dry-run`, show what would be removed.
 
@@ -224,7 +224,6 @@ replaced by the next run.
 <home>/config.toml        settings
 <home>/tracks.json        the catalog's tags
 <home>/covers/            cover images, named by SHA-256
-<home>/specs/             albums to add
 <home>/dates.json         folder and file dates
 <home>/state/             converted.json, added.json, history/, snapshots/, staging/, logs/, *.lock
 ```

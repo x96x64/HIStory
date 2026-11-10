@@ -35,12 +35,10 @@ def run(config: Config) -> int:
     except (catalog.CatalogError, ValueError, KeyError):
         records = []                                   # the problem is already in the list
     names = {r["tags"].get("ItemList:Album") for r in records}
-    waiting = len(catalog.pending_specs(config)) if config.specs.is_dir() and not problems else 0
-    line(not problems and (bool(records) or bool(waiting)),
+    line(not problems and bool(records),
          f"catalog: {len(records)} tracks, {len(names)} albums"
-         + (f", {waiting} albums waiting in specs/" if waiting else "")
          + (f", {len(problems)} problems (run 'hist catalog check')" if problems else "")
-         + ("" if records or waiting or problems else " (empty: add albums with specs/ or 'hist catalog import')"),
+         + ("" if records or problems else " (empty: add albums with 'hist catalog add' or 'hist catalog import')"),
          required=bool(problems))
     try:
         entries = dates.entries(config.dates_file)

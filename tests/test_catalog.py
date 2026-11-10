@@ -99,7 +99,7 @@ def test_remove_album_cleans_every_file_of_the_catalog_folder(env):
     state.added(cfg.state).add("Best Of", tracks=2)
 
     preview = catalog.remove_album(cfg, "best", dry_run=True)
-    assert preview == {"album": "Best Of", "tracks": 2, "dates": ["A", "A/B"], "specs": [], "covers": [A_COVER]}
+    assert preview == {"album": "Best Of", "tracks": 2, "dates": ["A", "A/B"], "covers": [A_COVER]}
     assert len(catalog.read_records(cfg)) == 3
 
     catalog.remove_album(cfg, "best")
@@ -120,3 +120,12 @@ def test_remove_album_keeps_an_artist_entry_still_in_use(env):
         {"kind": "album", "path": "A/Later", "date": "2005-01-01"}]}))
     removed = catalog.remove_album(env.config(), "best")
     assert removed["dates"] == ["A/B"]
+
+
+def test_read_spec_takes_a_relative_cover_from_the_spec_folder(tmp_path):
+    folder = tmp_path / "anywhere"
+    folder.mkdir()
+    the_spec = spec("X", "Band", "2001-01-01", ["One"])
+    the_spec["cover"] = "front.jpg"
+    (folder / "x.json").write_text(json.dumps(the_spec))
+    assert catalog.read_spec(folder / "x.json")["cover"] == str((folder / "front.jpg").resolve())

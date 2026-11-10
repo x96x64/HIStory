@@ -8,7 +8,6 @@ or with the help of an assistant. Run `hist catalog check` after editing.
 config.toml
 tracks.json
 covers/<sha256>
-specs/<name>.json
 dates.json
 state/                 created by hist; not part of the catalog
 ```
@@ -97,11 +96,11 @@ Rules:
 
 Every change made by `hist catalog set`, `unset` or `remove` keeps the previous file in `state/history/`.
 
-## specs/
+## Spec files
 
-A spec describes an album to add. `hist watch` adds it to the catalog as soon as its download is complete, and
-`hist catalog add SPEC --from DIR` adds it at once. After that, the catalog is what counts: the spec is moved
-to `state/history/`, so that `specs/` holds only albums that are still to be added.
+A spec file describes an album to add. It is not part of the catalog folder: keep it anywhere, and add the album
+with `hist catalog add SPEC --from DIR` once its download is complete. From then on the catalog is what counts,
+and the spec file is no longer needed.
 
 ```json
 {
@@ -110,7 +109,7 @@ to `state/history/`, so that `specs/` holds only albums that are still to be add
  "release": "2001-02-03",
  "discs": 1,
  "copyright": "℗ 2001 Example Records",
- "cover": "covers/<sha256>",
+ "cover": "cover.jpg",
  "tracks": [
   {"disc": 1, "track": 1, "title": "Song Title", "artist": "Artist",
    "composer": "First Writer, Second Writer", "genre": "Pop"}
@@ -119,7 +118,7 @@ to `state/history/`, so that `specs/` holds only albums that are still to be add
 ```
 
 `cover`
-: Optional. An image file (JPEG or PNG), relative to the catalog folder or absolute. Without it, the picture
+: Optional. An image file (JPEG or PNG), relative to the spec file's folder or absolute. Without it, the picture
 embedded in the first FLAC file is used, and every file must carry the same picture.
 
 `composer`

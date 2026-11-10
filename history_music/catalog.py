@@ -107,7 +107,7 @@ def remove_album(config: Config, album_text: str, dry_run: bool = False) -> dict
     """Remove an album from the catalog folder; the library and the Music app are not touched.
 
     Removed: the album's tracks, its dates.json entries (and its artist's, when no other album of that artist is
-    left), its progress records, its spec, and covers that nothing else uses. Every changed file is kept in
+    left), its progress records, and covers that nothing else uses. Every changed file is kept in
     state/history first. Returns what was (or, with dry_run, would be) removed.
     """
     records = read_records(config)
@@ -123,12 +123,9 @@ def remove_album(config: Config, album_text: str, dry_run: bool = False) -> dict
     left = [e for e in left if not (e.get("kind") == "artist" and e.get("path") not in artists_in_use)]
     dates_removed = [e["path"] for e in doc["entries"] if e not in left]
 
-    specs = [path for path, spec in all_specs(config) if spec["album"] == album]
-    spec_texts = [p.read_text(encoding="utf-8") for p in config.specs.glob("*.json") if p not in specs] \
-        if config.specs.is_dir() else []
     used = {h for r in keep for hashes in r["blobs"].values() for h in hashes}
     covers = sorted({h for r in gone for hashes in r["blobs"].values() for h in hashes} - used)
-    covers = [h for h in covers if (config.covers / h).exists() and not any(h in t for t in spec_texts)]
+    covers = [h for h in covers if (config.covers / h).exists()]
 
     if not dry_run:
         history = config.state / "history"
@@ -136,25 +133,24 @@ def remove_album(config: Config, album_text: str, dry_run: bool = False) -> dict
         if dates_removed:
             state.keep_history(config.dates_file, history)
             state.write_json(config.dates_file, {**doc, "entries": left})
-        for path in specs:
-            state.keep_history(path, history)
-            path.unlink()
         for digest in covers:
             state.keep_history(config.covers / digest, history)
             (config.covers / digest).unlink()
         state.added(config.state).remove(album)
         state.converted(config.state).remove(album)
-    return {"album": album, "tracks": len(gone), "dates": dates_removed, "specs": [p.name for p in specs],
-            "covers": covers}
+    return {"album": album, "tracks": len(gone), "dates": dates_removed, "covers": covers}
 
 
-# ------------------------------------------------------------------- specs
+# -------------------------------------------------------------- spec files
 
 def read_spec(path: Path) -> dict:
+    """Read a spec file; a relative 'cover' is taken relative to the spec file's folder."""
     spec = json.loads(path.read_text(encoding="utf-8"))
     for key in ("album", "album_artist", "release", "discs", "tracks"):
         if key not in spec:
             raise CatalogError(f"{path.name}: '{key}' is missing")
+    if spec.get("cover"):
+        spec["cover"] = str((path.parent / Path(spec["cover"]).expanduser()).resolve())
     return spec
 
 
@@ -224,34 +220,6 @@ def add_spec(config: Config, spec: dict, flac_dir: Path, dry_run: bool = False) 
     return len(records)
 
 
-def all_specs(config: Config) -> list:
-    """(path, spec) of every spec file, sorted by file name."""
-    paths = sorted(config.specs.glob("*.json")) if config.specs.is_dir() else []
-    return [(path, read_spec(path)) for path in paths]
-
-
-def pending_specs(config: Config) -> list:
-    """Specs whose album is not in the catalog yet, oldest release first."""
-    names = {r["tags"]["ItemList:Album"] for r in read_records(config)}
-    out = [(path, spec) for path, spec in all_specs(config) if spec["album"] not in names]
-    return sorted(out, key=lambda item: item[1]["release"])
-
-
-def retire_applied_specs(config: Config) -> list:
-    """Move the specs whose album is in the catalog to state/history, so that specs/ holds only albums to add.
-
-    Returns the file names of the moved specs.
-    """
-    names = {r["tags"]["ItemList:Album"] for r in read_records(config)}
-    retired = []
-    for path, spec in all_specs(config):
-        if spec["album"] in names:
-            state.keep_history(path, config.state / "history")
-            path.unlink()
-            retired.append(path.name)
-    return retired
-
-
 # ------------------------------------------------------------------ import
 
 def import_library(config: Config, source: Path) -> tuple:
@@ -304,10 +272,4 @@ def check(config: Config) -> list[str]:
         if key in seen:
             problems.append(f"{r['file']}: same album, disc and track as {seen[key]}")
         seen[key] = r["file"]
-    if config.specs.is_dir():
-        for path in sorted(config.specs.glob("*.json")):
-            try:
-                read_spec(path)
-            except (CatalogError, json.JSONDecodeError) as error:
-                problems.append(f"specs/{path.name}: {error}")
     return problems

@@ -31,9 +31,8 @@ def cmd_init(args, home: Path) -> int:
         for name in ("config.toml", "tracks.json", "dates.json"):
             if (src / name).exists():
                 shutil.copy2(src / name, home / name)
-        for name in ("covers", "specs"):
-            if (src / name).is_dir():
-                shutil.copytree(src / name, home / name, dirs_exist_ok=True)
+        if (src / "covers").is_dir():
+            shutil.copytree(src / "covers", home / "covers", dirs_exist_ok=True)
         cfg = config_mod.load(home)
         problems = catalog.check(cfg)
         for p in problems:
@@ -43,8 +42,7 @@ def cmd_init(args, home: Path) -> int:
                  f"{len(catalog.albums(cfg))} albums)" + (f"; {len(problems)} problems" if problems else ""))
         return EXIT_ERROR if problems else EXIT_OK
     home.mkdir(parents=True, exist_ok=True)
-    for sub in ("covers", "specs"):
-        (home / sub).mkdir(exist_ok=True)
+    (home / "covers").mkdir(exist_ok=True)
     if not cfg.config_file.exists():
         cfg.config_file.write_text(config_mod.TEMPLATE, encoding="utf-8")
     if not cfg.tracks_file.exists():
@@ -232,12 +230,10 @@ def cmd_catalog(args, cfg) -> int:
         removed = catalog.remove_album(cfg, args.album, dry_run=args.dry_run)
         verb = "Would remove" if args.dry_run else "Removed"
         log.info(f"{verb} {removed['album']} from the catalog: {removed['tracks']} tracks, "
-                 f"{len(removed['dates'])} dates entries, {len(removed['specs'])} specs, "
+                 f"{len(removed['dates'])} dates entries, "
                  f"{len(removed['covers'])} covers")
         for path in removed["dates"]:
             log.info(f"  dates entry: {path}")
-        for name in removed["specs"]:
-            log.info(f"  spec: specs/{name}")
         for digest in removed["covers"]:
             log.info(f"  cover: covers/{digest}")
         if not args.dry_run:
@@ -247,9 +243,6 @@ def cmd_catalog(args, cfg) -> int:
         spec = catalog.read_spec(Path(args.spec).expanduser())
         n = catalog.add_spec(cfg, spec, Path(args.source).expanduser(), dry_run=args.dry_run)
         log.info(("Would add " if args.dry_run else "Added ") + f"{spec['album']} ({n} tracks)")
-        if not args.dry_run:
-            for name in catalog.retire_applied_specs(cfg):
-                log.info(f"Moved specs/{name} to state/history: its album is in the catalog")
         return EXIT_OK
     if action == "check":
         problems = catalog.check(cfg)
@@ -320,7 +313,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = add("init", cmd_init, "create the catalog folder, or copy an existing catalog into it")
     p.add_argument("--from", dest="source", metavar="DIR", help="copy this catalog (config.toml, tracks.json, "
-                                                                "covers/, specs/, dates.json)")
+                                                                "covers/, dates.json)")
     p.add_argument("--force", action="store_true", help="replace a catalog that already holds tracks")
 
     add("doctor", cmd_doctor, "check the tools, the configuration and the catalog")

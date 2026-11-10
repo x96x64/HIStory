@@ -86,7 +86,7 @@ See [docs/commands.md](docs/commands.md) for every option, exit status and file.
 
 The catalog lives in `~/Library/Application Support/HIStory` unless `--home DIR` or the `HISTORY_HOME`
 environment variable says otherwise. It holds `config.toml` (folders and matching rules), `tracks.json`
-(the tags of every track), `covers/`, `specs/` (albums to add) and `dates.json`. Progress records and logs are
+(the tags of every track), `covers/` and `dates.json`. Progress records and logs are
 kept in its `state/` folder.
 
 See [docs/catalog-format.md](docs/catalog-format.md) for the format of every file, and

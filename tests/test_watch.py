@@ -9,34 +9,27 @@ import threading
 import pytest
 
 from conftest import needs_tools, spec
-from history_music import catalog, convert, library, runtime, state, watch
+from history_music import convert, library, runtime, state, watch
 
 pytestmark = needs_tools
 
 
-def write_spec(env, name, the_spec):
-    (env.home / "specs").mkdir(exist_ok=True)
-    (env.home / "specs" / f"{name}.json").write_text(json.dumps(the_spec))
-
-
-def test_watch_adds_specs_converts_and_ends_by_itself(env):
+def test_watch_converts_and_ends_by_itself(env):
     first = env.download("First", "First", "Band", ["a", "b"])
     env.add_album(spec("First", "Band", "2000-01-01", ["A", "B"]), first)
-    env.download("Second (Deluxe)", "Second (Deluxe)", "Band", ["c", "d"], base_freq=900)
-    write_spec(env, "second", spec("Second", "Band", "2001-01-01", ["C", "D"]))
+    second = env.download("Second (Deluxe)", "Second (Deluxe)", "Band", ["c", "d"], base_freq=900)
+    env.add_album(spec("Second", "Band", "2001-01-01", ["C", "D"]), second)
     code = watch.run(env.config(), convert.Options(), runtime.Stopper(), interval=0.1, convert_only=True)
     assert code == 0
     assert state.converted(env.config().state).names() == {"First", "Second"}
-    assert {a["name"] for a in catalog.albums(env.config())} == {"First", "Second"}
-    assert not list((env.home / "specs").glob("*.json"))
-    assert [p.name.split(".json")[0] for p in (env.home / "state" / "history").glob("second.json.*")] == ["second"]
 
 
 def test_watch_stops_when_asked(env):
     first = env.download("First", "First", "Band", ["a", "b"])
     env.add_album(spec("First", "Band", "2000-01-01", ["A", "B"]), first)
-    env.download("Later", "Later", "Band", ["x"])          # one of two tracks: never complete
-    write_spec(env, "later", spec("Later", "Band", "2002-01-01", ["X", "Y"]))
+    later = env.download("Later", "Later", "Band", ["x", "y"])
+    env.add_album(spec("Later", "Band", "2002-01-01", ["X", "Y"]), later)
+    next(later.glob("*.flac")).unlink()                   # one of two tracks: never complete
     stopper = runtime.Stopper()
     threading.Timer(1.5, lambda: setattr(stopper, "signum", signal.SIGTERM)).start()
     with pytest.raises(runtime.Stopped) as stopped:
