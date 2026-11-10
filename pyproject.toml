@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "history-music"
+version = "1.0.0"
+description = "Rebuild an Apple Music library from FLAC downloads with exact, verified metadata"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "HIStory contributors" }]
+requires-python = ">=3.12"
+dependencies = []
+classifiers = [
+    "Environment :: Console",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Sound/Audio :: Conversion",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[project.scripts]
+hist = "history_music.cli:main"
+
+[tool.setuptools]
+packages = ["history_music"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

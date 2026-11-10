@@ -1,0 +1,12 @@
+# Virtual environment and build output
+.venv/
+build/
+dist/
+*.egg-info/
+
+# Caches
+__pycache__/
+.pytest_cache/
+
+# macOS
+.DS_Store

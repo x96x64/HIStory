@@ -1,0 +1,35 @@
+"""One line per album, oldest release first: how far it has come (reads only)."""
+import collections
+from pathlib import Path
+
+from history_music import catalog, convert, matching, state
+from history_music.config import Config
+from history_music.music_app import MusicApp
+
+
+def run(config: Config, music: MusicApp | None) -> int:
+    all_albums = catalog.albums(config)
+    converted = state.converted(config.state).names()
+    registered = state.added(config.state).load()
+    folders = matching.scan(config.sources)
+    listed = collections.Counter(a for a, _, _ in music.summary()) if music else None
+    counts = collections.Counter()
+    for order, album in enumerate(all_albums, 1):
+        name = album["name"]
+        if name in registered:
+            label = "in the library" + (f", {registered[name].get('dates')}" if registered[name].get("dates") else "")
+        elif name in converted:
+            label = "converted"
+        elif all(Path(t.path).exists() for t in album["tracks"]):
+            label = "in the library, not checked yet (run hist watch)"
+        else:
+            folder, why = convert.album_state(config, album, folders, all_albums)
+            if folder is not None and not why:
+                label = "downloaded, ready to convert" if folder.has_flac else "converted, ready to add"
+            else:
+                label = why
+        counts[label.split(",")[0]] += 1
+        extra = f"  [Music: {listed.get(name, 0)}/{len(album['tracks'])}]" if listed is not None else ""
+        print(f"{order:3d}  {album['release']}  {name[:52]:52s}  {label}{extra}")
+    print(", ".join(f"{n} {k}" for k, n in counts.most_common()) + f" ({len(all_albums)} albums)")
+    return 0
