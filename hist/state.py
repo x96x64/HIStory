@@ -1,7 +1,8 @@
-"""Small files under <home>/state: progress records, locks, and history copies."""
+"""Small files under <home>/state: progress records, locks, and backups."""
 import fcntl
 import json
 import os
+import re
 import shutil
 import time
 from pathlib import Path
@@ -55,19 +56,79 @@ def added(state_dir: Path) -> Progress:
     return Progress(state_dir / "added.json")
 
 
-def keep_history(path: Path, history_dir: Path) -> Path | None:
-    """Copy path into history_dir under a name that is never reused."""
-    if not path.exists():
-        return None
-    history_dir.mkdir(parents=True, exist_ok=True)
-    stamp = time.strftime("%Y%m%d-%H%M%S")
-    target = history_dir / f"{path.name}.{stamp}"
-    n = 2
+def unique(path: Path) -> Path:
+    """path, or path-2, path-3 ... if it already exists."""
+    target, n = path, 2
     while target.exists():
-        target = history_dir / f"{path.name}.{stamp}-{n}"
+        target = path.with_name(f"{path.name}-{n}")
         n += 1
-    shutil.copy2(path, target)
     return target
+
+
+class Backup:
+    """The folder state/backups/<time>-<command> that keeps the files one command changes, made on first use."""
+
+    def __init__(self, state_dir: Path, command: str):
+        self.base = state_dir / "backups" / f"{time.strftime('%Y%m%d-%H%M%S')}-{command}"
+        self.path: Path | None = None
+
+    def folder(self) -> Path:
+        if self.path is None:
+            self.path = unique(self.base)
+            self.path.mkdir(parents=True)
+        return self.path
+
+    def keep(self, path: Path, name: str | None = None) -> Path | None:
+        """Copy path into the folder, as name (for example covers/<digest>) or under its own name."""
+        if not path.exists():
+            return None
+        target = self.folder() / (name or path.name)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(path, target)
+        return target
+
+
+OLD_COPY = re.compile(r"^(.+)\.(\d{8}-\d{6})(?:-(\d+))?$")
+OLD_SNAPSHOT = re.compile(r"^retag-(\d{8}-\d{6})(-\d+)?$")
+COVER_NAME = re.compile(r"^[0-9a-f]{64}$")
+
+
+def migrate_backups(state_dir: Path) -> int:
+    """Move the copies in state/history/ and state/snapshots/ (before 2.2.0) into state/backups/.
+
+    Copies in history/ with the same time go into one folder <time>-catalog; a snapshot retag-<time> becomes
+    <time>-retag. Anything else is left where it is. Returns the number of folders made.
+    """
+    backups = state_dir / "backups"
+    made = 0
+    history = state_dir / "history"
+    if history.is_dir():
+        groups: dict = {}
+        for f in sorted(history.iterdir()):
+            m = OLD_COPY.match(f.name)
+            if f.is_file() and m:
+                groups.setdefault((m[2], m[3] or ""), []).append((f, m[1]))
+        for (stamp, n), files in sorted(groups.items()):
+            dest = unique(backups / (f"{stamp}-catalog" + (f"-{n}" if n else "")))
+            for f, name in files:
+                target = dest / ("covers/" + name if COVER_NAME.match(name) else name)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                os.replace(f, target)
+            made += 1
+    snapshots = state_dir / "snapshots"
+    if snapshots.is_dir():
+        for d in sorted(snapshots.iterdir()):
+            m = OLD_SNAPSHOT.match(d.name)
+            if d.is_dir() and m:
+                backups.mkdir(parents=True, exist_ok=True)
+                os.replace(d, unique(backups / f"{m[1]}-retag{m[2] or ''}"))
+                made += 1
+    for old in (history, snapshots):
+        if old.is_dir():
+            (old / ".DS_Store").unlink(missing_ok=True)
+            if not any(old.iterdir()):
+                old.rmdir()
+    return made
 
 
 class LockHeld(HistError):

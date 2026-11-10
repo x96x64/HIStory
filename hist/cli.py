@@ -222,7 +222,7 @@ def cmd_catalog(args, cfg) -> int:
         album, changed, n = catalog.set_tag(cfg, args.album, args.tag, args.value if action == "set" else None,
                                             args.disc, args.track)
         log.info(f"{album}: {catalog.short_tag(args.tag)} {'set' if action == 'set' else 'removed'} on {changed} of "
-                 f"{n} tracks" + (" (the previous tracks.json is kept in state/history)" if changed else ""))
+                 f"{n} tracks" + (" (the previous tracks.json is kept in state/backups)" if changed else ""))
         if changed:
             log.info("Converted files keep their old tags until 'hist retag PATH --apply' is run.")
         return EXIT_OK
@@ -237,7 +237,7 @@ def cmd_catalog(args, cfg) -> int:
         for digest in removed["covers"]:
             log.info(f"  cover: covers/{digest}")
         if not args.dry_run:
-            log.info("The previous files are kept in state/history. The library and the Music app were not changed.")
+            log.info("The previous files are kept in state/backups. The library and the Music app were not changed.")
         return EXIT_OK
     if action == "add":
         spec = catalog.read_spec(Path(args.spec).expanduser())
@@ -415,6 +415,8 @@ def main(argv=None) -> int:
         if args.func is cmd_init:
             return cmd_init(args, home)
         cfg = config_mod.load(home, getattr(args, "source", None) if args.func in (cmd_convert, cmd_watch) else None)
+        if moved := state.migrate_backups(cfg.state):
+            log.info(f"Moved {moved} old backups from state/history and state/snapshots to state/backups")
         return args.func(args, cfg)
     except (UsageError, config_mod.ConfigError) as error:
         log.error(str(error))

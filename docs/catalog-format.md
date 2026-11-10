@@ -94,7 +94,8 @@ Rules:
 - Text inside `()` belongs to the title; a second qualifier after one in `()` goes in `[]`, for example
   `Song (feat. Guest) [Live]`.
 
-Every change made by `hist catalog set`, `unset` or `remove` keeps the previous file in `state/history/`.
+Every change made by `hist catalog set`, `unset`, `add` or `remove` keeps the previous files in a new folder
+`state/backups/<time>-<command>/`, for example `state/backups/20261110-210045-catalog-remove/`.
 
 ## Spec files
 

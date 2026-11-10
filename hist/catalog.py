@@ -33,8 +33,8 @@ def read_records(config: Config) -> list[dict]:
     return data["tracks"]
 
 
-def write_records(config: Config, records: list[dict]) -> None:
-    state.keep_history(config.tracks_file, config.state / "history")
+def write_records(config: Config, records: list[dict], backup: state.Backup) -> None:
+    backup.keep(config.tracks_file)
     state.write_json(config.tracks_file, {"format": FORMAT, "tracks": records})
 
 
@@ -99,7 +99,8 @@ def set_tag(config: Config, album_text: str, tag: str, value: str | None, disc=N
         elif r["tags"].pop(tag, None) is not None:
             changed += 1
     if changed:
-        write_records(config, records)
+        command = "catalog-set" if value is not None else "catalog-unset"
+        write_records(config, records, state.Backup(config.state, command))
     return album, changed, len(picked)
 
 
@@ -108,7 +109,7 @@ def remove_album(config: Config, album_text: str, dry_run: bool = False) -> dict
 
     Removed: the album's tracks, its dates.json entries (and its artist's, when no other album of that artist is
     left), its progress records, and covers that nothing else uses. Every changed file is kept in
-    state/history first. Returns what was (or, with dry_run, would be) removed.
+    one folder of state/backups first. Returns what was (or, with dry_run, would be) removed.
     """
     records = read_records(config)
     album = select_album(records, album_text)
@@ -128,13 +129,13 @@ def remove_album(config: Config, album_text: str, dry_run: bool = False) -> dict
     covers = [h for h in covers if (config.covers / h).exists()]
 
     if not dry_run:
-        history = config.state / "history"
-        write_records(config, keep)
+        backup = state.Backup(config.state, "catalog-remove")
+        write_records(config, keep, backup)
         if dates_removed:
-            state.keep_history(config.dates_file, history)
+            backup.keep(config.dates_file)
             state.write_json(config.dates_file, {**doc, "entries": left})
         for digest in covers:
-            state.keep_history(config.covers / digest, history)
+            backup.keep(config.covers / digest, f"covers/{digest}")
             (config.covers / digest).unlink()
         state.added(config.state).remove(album)
         state.converted(config.state).remove(album)
@@ -216,7 +217,7 @@ def add_spec(config: Config, spec: dict, flac_dir: Path, dry_run: bool = False) 
     cover = config.covers / records[0]["blobs"]["ItemList:CoverArt"][0]
     if not cover.exists():
         cover.write_bytes(picture)
-    write_records(config, existing + records)
+    write_records(config, existing + records, state.Backup(config.state, "catalog-add"))
     return len(records)
 
 
@@ -235,7 +236,7 @@ def import_library(config: Config, source: Path) -> tuple:
         blobs = {k: v for k, v in t.blobs.items() if k.startswith("ItemList:")}
         no_disc += "ItemList:DiskNumber" not in record_tags
         records.append({"file": os.path.relpath(t.path, source), "tags": record_tags, "blobs": blobs})
-    write_records(config, records)
+    write_records(config, records, state.Backup(config.state, "catalog-import"))
     return len(records), no_disc
 
 

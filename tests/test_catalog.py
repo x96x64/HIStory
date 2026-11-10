@@ -19,12 +19,13 @@ def record(title, number):
             "blobs": {}}
 
 
-def test_set_and_unset_keep_history_and_guard_the_policy(env):
+def test_set_and_unset_keep_backups_and_guard_the_policy(env):
     write_records(env, [record("One", 1), record("Two", 2)])
     cfg = env.config()
     album, changed, n = catalog.set_tag(cfg, "best", "Genre", "Soul")
     assert (album, changed, n) == ("Best Of", 2, 2)
-    assert list((cfg.state / "history").iterdir())
+    [backup] = (cfg.state / "backups").iterdir()
+    assert backup.name.endswith("-catalog-set") and (backup / "tracks.json").exists()
     assert catalog.set_tag(cfg, "best of", "Genre", "Rock", track=2)[1:] == (1, 1)
     with pytest.raises(catalog.CatalogError):
         catalog.set_tag(cfg, "best", "Comment", "no")
@@ -107,8 +108,9 @@ def test_remove_album_cleans_every_file_of_the_catalog_folder(env):
     assert [e["path"] for e in json.loads(cfg.dates_file.read_text())["entries"]] == ["C", "C/Other"]
     assert not (cfg.covers / (A_COVER)).exists() and (cfg.covers / (B_COVER)).exists()
     assert "Best Of" not in state.added(cfg.state).names()
-    kept = {p.name.split(".")[0] for p in (cfg.state / "history").iterdir()}
-    assert {"tracks", "dates", A_COVER} <= kept
+    [backup] = (cfg.state / "backups").iterdir()
+    assert backup.name.endswith("-catalog-remove")
+    assert {"tracks.json", "dates.json", f"covers/{A_COVER}"} <= {str(p.relative_to(backup)) for p in backup.rglob("*")}
     assert catalog.check(cfg) == []
 
 
@@ -129,3 +131,35 @@ def test_read_spec_takes_a_relative_cover_from_the_spec_folder(tmp_path):
     the_spec["cover"] = "front.jpg"
     (folder / "x.json").write_text(json.dumps(the_spec))
     assert catalog.read_spec(folder / "x.json")["cover"] == str((folder / "front.jpg").resolve())
+
+
+def test_old_history_and_snapshots_move_to_backups(tmp_path):
+    history, snapshots = tmp_path / "history", tmp_path / "snapshots"
+    history.mkdir()
+    for name in ("tracks.json.20261110-190547", "dates.json.20261110-190547", "tracks.json.20261110-190547-2",
+                 "tracks.json.20261110-210045", f"{A_COVER}.20261110-190547", "notes.txt"):
+        (history / name).write_text(name)
+    (snapshots / "retag-20261110-195110" / "covers").mkdir(parents=True)
+    (snapshots / "retag-20261110-195110" / "tracks.json").write_text("{}")
+
+    assert state.migrate_backups(tmp_path) == 4
+    backups = tmp_path / "backups"
+    found = {str(p.relative_to(backups)) for p in backups.rglob("*") if p.is_file()}
+    assert found == {"20261110-190547-catalog/tracks.json", "20261110-190547-catalog/dates.json",
+                     f"20261110-190547-catalog/covers/{A_COVER}", "20261110-190547-catalog-2/tracks.json",
+                     "20261110-210045-catalog/tracks.json", "20261110-195110-retag/tracks.json"}
+    assert (backups / "20261110-190547-catalog-2" / "tracks.json").read_text() == "tracks.json.20261110-190547-2"
+    assert [p.name for p in history.iterdir()] == ["notes.txt"]
+    assert not snapshots.exists()
+    assert state.migrate_backups(tmp_path) == 0
+
+
+def test_a_backup_folder_is_made_only_when_a_file_is_kept(tmp_path):
+    backup = state.Backup(tmp_path, "catalog-import")
+    assert backup.keep(tmp_path / "tracks.json") is None
+    assert not (tmp_path / "backups").exists()
+    (tmp_path / "tracks.json").write_text("{}")
+    other = state.Backup(tmp_path, "catalog-import")
+    other.base = backup.base                             # as if both ran in the same second
+    first, second = backup.keep(tmp_path / "tracks.json"), other.keep(tmp_path / "tracks.json")
+    assert first.parent.name.endswith("-catalog-import") and second.parent.name == first.parent.name + "-2"

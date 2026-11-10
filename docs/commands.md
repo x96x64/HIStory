@@ -152,7 +152,7 @@ file name, every file decodes cleanly, and every album complete. Exits 1 on any 
 
 `set ALBUM TAG VALUE [--disc N] [--track N]`
 : Set a tag on every track of an album, or on one track. TAG may omit the group: `Genre` means `ItemList:Genre`.
-The previous `tracks.json` is kept in `state/history/`.
+The previous `tracks.json` is kept in `state/backups/`.
 
 `unset ALBUM TAG [--disc N] [--track N]`
 : Remove a tag. Title, Album, AlbumArtist, Artist, TrackNumber and DiskNumber cannot be removed.
@@ -165,7 +165,7 @@ see docs/catalog-format.md.
 : Remove an album from the catalog folder after you have removed it from the Music app: its tracks, its
 `dates.json` entries (and its artist's entry when no other album of that artist is left), its records in
 `state/added.json` and `state/converted.json`, and covers that nothing else uses. Every changed or
-deleted file is kept in `state/history/` first. The library folder and the Music app are not touched. With
+deleted file is kept in one folder of `state/backups/` first. The library folder and the Music app are not touched. With
 `--dry-run`, show what would be removed.
 
 `check`
@@ -177,7 +177,7 @@ deleted file is kept in `state/history/` first. The library folder and the Music
 ### hist retag PATH... [--apply] [--fields LIST] [--prune] [--list-unmatched]
 
 Match the M4A files under each PATH to the catalog and show the tags that differ. With `--apply`, save the
-current tags to `state/snapshots/`, then write the catalog's tags. Writing changes the files' dates, so run
+current tags to `state/backups/`, then write the catalog's tags. Writing changes the files' dates, so run
 `hist dates apply` afterwards for albums in the library, and `hist refresh` for albums in the Music app.
 
 ### hist refresh ALBUM
@@ -225,7 +225,7 @@ replaced by the next run.
 <home>/tracks.json        the catalog's tags
 <home>/covers/            cover images, named by SHA-256
 <home>/dates.json         folder and file dates
-<home>/state/             converted.json, added.json, history/, snapshots/, staging/, logs/, *.lock
+<home>/state/             converted.json, added.json, backups/, staging/, logs/, *.lock
 ```
 
 ## EXAMPLES

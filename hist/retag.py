@@ -1,5 +1,4 @@
 """Writing the catalog's tags back into existing M4A files (for files converted before a catalog change)."""
-import time
 from collections import defaultdict
 from pathlib import Path
 
@@ -11,11 +10,7 @@ from hist.tags import Match
 
 def snapshot(config: Config, found: list) -> Path:
     """Save the current tags of the files before writing, in the catalog's format."""
-    base = config.state / "snapshots" / time.strftime("retag-%Y%m%d-%H%M%S")
-    dest, n = base, 2
-    while dest.exists():
-        dest = base.with_name(f"{base.name}-{n}")
-        n += 1
+    dest = state.Backup(config.state, "retag").folder()
     records = [{"file": t.path, "tags": t.tags, "blobs": t.blobs}
                for t in tags.read_tracks(found, dest / "covers")]
     state.write_json(dest / "tracks.json", {"format": catalog.FORMAT, "tracks": records})
