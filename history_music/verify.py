@@ -4,7 +4,7 @@ import os
 import re
 from pathlib import Path
 
-from history_music import catalog, media, proc, tags
+from history_music import catalog, media, tags
 from history_music.config import Config
 from history_music.log import log
 from history_music.music_app import MusicApp
@@ -54,8 +54,8 @@ def run(config: Config, roots: list, allow_missing: bool, decode: bool, music: M
         problems.append("unexpected metadata atoms")
 
     if decode:
-        bad = [os.path.basename(t.path) for t in found if os.path.exists(t.path) and proc.run(
-            ["ffmpeg", "-v", "error", "-nostdin", "-i", t.path, "-map", "0:a", "-f", "null", "-"], text=True).stderr.strip()]
+        bad = [os.path.basename(t.path) for t in found
+               if os.path.exists(t.path) and not media.decodes_cleanly(Path(t.path))]
         log.info(f"files that do not decode cleanly: {bad or 'none'}")
         if bad:
             problems.append("files do not decode cleanly")
