@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-11-10
+
+### Changed
+
+- Backups are kept in one place, `state/backups/`, with one folder per command named
+  `<time>-<command>`, for example `20261110-210045-catalog-remove`. It holds every file the command changed:
+  `tracks.json`, `dates.json` and removed covers for `hist catalog set`, `unset`, `add`, `remove` and `import`,
+  and the files' current tags for `hist retag --apply`.
+- The first `hist` command after the update moves the copies in `state/history/` and the folders in
+  `state/snapshots/` into `state/backups/`, and removes the old folders when they are empty.
+
 ## [2.1.0] - 2026-11-10
 
 ### Changed
