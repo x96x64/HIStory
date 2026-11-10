@@ -167,9 +167,20 @@ def store_blob(encoded: str, blob_dir: Path | None) -> str:
 
 def metadata_atoms(path: str) -> set:
     """Names of every metadata atom of an M4A file, unknown ones included."""
-    out = proc.run([exiftool(), "-q", "-a", "-u", "-G1", "-s3", "-j", "-ItemList:all", "-UserData:all",
-                    "-Keys:all", "-XMP:all", path], text=True).stdout
-    return {k for k in json.loads(out)[0] if k != "SourceFile"} if out.strip() else set()
+    return metadata_atoms_of([path]).get(path, set())
+
+
+def metadata_atoms_of(paths: list) -> dict:
+    """{path: names of every metadata atom}, reading CHUNK files per exiftool run."""
+    found = {}
+    for i in range(0, len(paths), CHUNK):
+        out = proc.run([exiftool(), "-q", "-a", "-u", "-G1", "-s3", "-j", "-charset", "filename=UTF8",
+                        "-ItemList:all", "-UserData:all", "-Keys:all", "-XMP:all", *paths[i:i + CHUNK]],
+                       text=True).stdout
+        for item in json.loads(out) if out.strip() else []:
+            path = item.pop("SourceFile")
+            found[path] = set(item)
+    return found
 
 
 @lru_cache(maxsize=1)

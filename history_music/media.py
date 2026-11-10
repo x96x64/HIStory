@@ -63,6 +63,16 @@ def has_store_protection(path: Path) -> bool:
     return bool(out.strip())
 
 
+def store_protected(paths: list) -> set:
+    """The paths, of those given, whose files still carry store purchase data (CHUNK files per exiftool run)."""
+    found = set()
+    for i in range(0, len(paths), tags.CHUNK):
+        out = proc.run([tags.exiftool(), "-q", "-j", "-a", "-u", "-charset", "filename=UTF8", "-SchemeType",
+                        *paths[i:i + tags.CHUNK]], text=True).stdout
+        found |= {item["SourceFile"] for item in (json.loads(out) if out.strip() else []) if item.get("SchemeType")}
+    return found
+
+
 def rebuild_container(path: Path) -> None:
     """Copy the streams into a fresh MP4 container without re-encoding; store purchase data is dropped."""
     tmp = path.with_name(path.stem + ".rebuild.m4a")

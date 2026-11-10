@@ -37,7 +37,7 @@ def run(config: Config, roots: list, allow_missing: bool, decode: bool, music: M
     comment = sum(1 for t in found if "ItemList:Comment" in t.tags)
     encoder = sum(1 for t in found if "ItemList:Encoder" in t.tags)
     nodisc = sum(1 for t in found if "ItemList:DiskNumber" not in t.tags)
-    store = sum(1 for t in found if media.has_store_protection(Path(t.path)))
+    store = len(media.store_protected([t.path for t in found]))
     ids = [os.path.basename(t.path) for t in found if re.search(r"_\d{5,}\.m4a$", t.path)]
     log.info(f"Comment: {comment}, Encoder: {encoder}, without DiskNumber: {nodisc}, "
              f"store purchase data: {store}, names with a download id: {len(ids)}")
@@ -45,8 +45,8 @@ def run(config: Config, roots: list, allow_missing: bool, decode: bool, music: M
         problems.append("a file breaks the tag policy")
 
     other = collections.Counter()
-    for t in found:
-        for k in tags.metadata_atoms(t.path):
+    for atoms in tags.metadata_atoms_of([t.path for t in found]).values():
+        for k in atoms:
             if k.split(":")[1] not in census:
                 other[k] += 1
     log.info(f"unexpected metadata atoms: {dict(other) or 'none'}")
