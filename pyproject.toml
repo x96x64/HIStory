@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "history-music"
-version = "1.0.0"
+version = "1.1.0"
 description = "Rebuild an Apple Music library from FLAC downloads with exact, verified metadata"
 readme = "README.md"
 license = "MIT"

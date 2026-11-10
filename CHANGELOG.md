@@ -4,6 +4,23 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-11-10
+
+### Added
+
+- `hist catalog remove ALBUM [--dry-run]`: removes an album you removed from the Music app from the catalog
+  folder, with its `dates.json` entries, progress records, spec and unused covers. The previous files are kept in
+  `state/history/`.
+
+### Changed
+
+- Every error that `hist` reports without a traceback now derives from one base class, `HistError`.
+- `hist dates` is split into one function per action; the output is unchanged.
+
+### Fixed
+
+- `hist doctor` reports a `tracks.json` that is not valid JSON instead of stopping with a traceback.
+
 ## [1.0.0] - 2026-11-10
 
 ### Added
