@@ -30,7 +30,10 @@ def run(config: Config) -> int:
     line(config.config_file.exists(), f"config: {config.config_file}" + ("" if config.config_file.exists()
                                                                          else " (missing; run 'hist init')"))
     problems = catalog.check(config)
-    records = catalog.read_records(config) if not problems or config.tracks_file.exists() else []
+    try:
+        records = catalog.read_records(config)
+    except (catalog.CatalogError, ValueError, KeyError):
+        records = []                                   # the problem is already in the list
     names = {r["tags"].get("ItemList:Album") for r in records}
     waiting = len(catalog.pending_specs(config)) if config.specs.is_dir() and not problems else 0
     line(not problems and (bool(records) or bool(waiting)),
