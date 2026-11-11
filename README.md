@@ -93,6 +93,8 @@ python3 -m venv .venv && .venv/bin/pip install -e '.[test]'
 
 The tests generate short FLAC files with ffmpeg and never touch your library or the Music app.
 
+See [docs/maintenance.md](docs/maintenance.md) for the ground rules, commit messages, releases and backups.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
