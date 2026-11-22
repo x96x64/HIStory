@@ -59,5 +59,8 @@ number of the last book is kept in `~/.HIStory/.book` as a plain decimal number 
    `.git`, `hist.egg-info` and `.book`. If a ZIP of that name already exists, stop and ask the user.
 4. List the ZIP and check that it holds `HIStory/tracks.json`, `HIStory/covers/`,
    `.HIStory/HIStory/docs/maintenance.md` and `.HIStory/.book`.
+5. Set the dates of the ZIP file itself, and only of it, to 1995-06-20 00:00:00.00 local time: the
+   modification date with `touch -t 199506200000.00 ZIP` and the creation date with
+   `SetFile -d "06/20/1995 00:00:00" ZIP`. The files inside the ZIP keep their own dates.
 
 The user puts the ZIP on Google Drive.
