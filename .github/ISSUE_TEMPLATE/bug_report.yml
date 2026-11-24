@@ -1,0 +1,38 @@
+name: Bug report
+description: Report something that does not work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The commands you ran, with their output. Remove private paths and tags if needed.
+      render: sh
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The output of `hist --version`.
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Operating system and Python version
+      placeholder: macOS 15.1, Python 3.13
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of hist doctor
+      render: text
