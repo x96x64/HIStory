@@ -71,12 +71,18 @@ def run(config: Config, as_json: bool = False) -> int:
     except (dates.DatesError, ValueError, KeyError) as error:
         line(False, f"dates: {error}")
 
-    line(
-        bool(config.downloads),
-        "downloads: " + (", ".join(str(p) for p in config.downloads) or "not set (config.toml [paths] downloads)"),
-    )
-    for path in config.downloads:
-        line(path.is_dir(), f"  {path}" + ("" if path.is_dir() else " (does not exist yet)"), required=False)
+    found = config.present_downloads
+    if config.downloads_auto:
+        line(
+            True,
+            "downloads: automatic, found "
+            + (", ".join(str(p) for p in found) or "none yet (the usual folders of download services are watched)"),
+        )
+    else:
+        line(True, "downloads: " + ", ".join(str(p) for p in config.downloads))
+        missing = [p for p in config.downloads if not p.is_dir()]
+        if missing:
+            say("download folders not present (skipped until they exist): " + ", ".join(str(p) for p in missing))
     line(
         config.library.is_dir() or config.auto_add.is_dir(),
         f"library: {config.library}"
@@ -86,7 +92,7 @@ def run(config: Config, as_json: bool = False) -> int:
     line(config.auto_add.is_dir(), f"auto_add: {config.auto_add}", required=False)
     if config.store_album:
         say(f"store album: {config.store_album} ({config.store_file})")
-    probe = config.downloads[0] if config.downloads else config.home
+    probe = found[0] if found else config.home
     free = media.free_bytes(probe) / 2**30
     line(
         free > config.min_free_gb,

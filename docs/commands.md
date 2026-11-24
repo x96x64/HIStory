@@ -54,7 +54,8 @@ Print the guide for AI agents and scripts: the same text as `AGENTS.md` in the c
 ### hist doctor [--json]
 
 Check Python, the external tools, the configuration, the catalog, the dates file, the folders, free disk space,
-and whether `watch` or `convert` is running. Exits 1 if something required is missing. A missing tool is named
+and whether `watch` or `convert` is running. With automatic download folders it lists the ones it found; a
+listed download folder that does not exist is reported as information, not as a warning. Exits 1 if something required is missing. A missing tool is named
 with the command that installs it, for example `brew install ffmpeg`. With `--json`, print
 `{"ok", "checks", "info"}`.
 

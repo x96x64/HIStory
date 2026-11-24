@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.5.1] - 2026-11-24
+
+### Changed
+
+- When `[paths] downloads` is empty or missing, `hist` detects the download folders of common music services
+  instead of scanning nothing: `~/Music/mora`, `~/Music/OTOTOY`, `~/Music/Qobuz`, `~/Music/Qobuz Downloads`,
+  `~/Music/e-onkyo music`, `~/Music/HDtracks`, `~/Music/7digital`, `~/Music/Bandcamp`, `~/Music/Downloads`,
+  `~/Downloads/Music`, `~/Downloads/mora`, `~/Downloads/OTOTOY`, `~/Downloads/Qobuz` and `~/Downloads/Bandcamp`.
+  Every one of them that exists is scanned, and one that appears later is picked up by the next scan. The whole
+  `~/Downloads` folder is never scanned. `hist init` writes `downloads = []` with a comment that explains this. To
+  use the detection, empty the `downloads` list in `config.toml`; a non-empty list keeps working as before.
+- `hist doctor` no longer warns about a listed download folder that does not exist yet, and no longer fails when no
+  download folder is set. It names the folders it found, and lists absent ones under `info`. `hist watch` names only
+  the download folders that exist when it starts.
+- The default `evacuation` folder, where `hist evacuate` moves album folders out of the library, is
+  `~/Desktop/HIStory Evacuated` instead of `~/Music/HIStory Evacuated`. A `config.toml` that sets `evacuation` is
+  not affected. To keep the old folder, add `evacuation = "~/Music/HIStory Evacuated"` under `[paths]`.
+
 ## [2.5.0] - 2026-11-24
 
 ### Added
@@ -338,7 +356,8 @@ This release contains breaking changes; see the migration steps below.
 - Safe stopping (first Ctrl-C or `hist stop` finishes the current album), locks against concurrent runs, and
   log files under `state/logs/`.
 
-[Unreleased]: https://github.com/x96x64/HIStory/compare/v2.5.0...HEAD
+[Unreleased]: https://github.com/x96x64/HIStory/compare/v2.5.1...HEAD
+[2.5.1]: https://github.com/x96x64/HIStory/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/x96x64/HIStory/compare/v2.4.3...v2.5.0
 [2.4.3]: https://github.com/x96x64/HIStory/compare/v2.4.2...v2.4.3
 [2.4.2]: https://github.com/x96x64/HIStory/compare/v2.4.1...v2.4.2

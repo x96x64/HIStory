@@ -24,7 +24,8 @@ def run(
 ) -> int:
     log.info(
         "Watching "
-        + ", ".join(str(p) for p in config.sources)
+        + (", ".join(str(p) for p in config.sources if p.is_dir()) or "no download folder yet")
+        + (" (and the usual download folders as they appear)" if config.downloads_auto else "")
         + ("" if convert_only else f" and {config.library}")
         + " (Ctrl-C to stop)"
     )
