@@ -5,18 +5,42 @@ import json
 import os
 import re
 import shutil
+import tempfile
 import time
 from pathlib import Path
 
 from hist.errors import HistError
 
 
-def write_json(path: Path, data) -> None:
-    """Write JSON atomically (a temporary file, then a rename)."""
+def write_bytes(path: Path, data: bytes) -> None:
+    """Write a file durably and atomically: a temporary file in the same folder, fsync, then a rename."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    os.replace(tmp, path)
+    fd, name = tempfile.mkstemp(dir=path.parent, prefix=path.name + ".", suffix=".tmp")
+    tmp = Path(name)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
+    try:
+        dir_fd = os.open(path.parent, os.O_RDONLY)
+    except OSError:
+        return
+    try:
+        os.fsync(dir_fd)
+    except OSError:
+        pass
+    finally:
+        os.close(dir_fd)
+
+
+def write_json(path: Path, data) -> None:
+    """Write JSON atomically and durably (see write_bytes)."""
+    write_bytes(path, (json.dumps(data, ensure_ascii=False, indent=1) + "\n").encode("utf-8"))
 
 
 def read_json(path: Path, default):

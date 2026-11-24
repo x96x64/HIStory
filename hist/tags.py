@@ -15,7 +15,7 @@ from difflib import SequenceMatcher
 from functools import cache, lru_cache
 from pathlib import Path
 
-from hist import proc
+from hist import proc, state
 from hist.log import log
 
 TAG_GROUPS = ("ItemList", "UserData", "Keys", "ID3", "Vorbis", "APE", "XMP")
@@ -173,7 +173,7 @@ def store_blob(encoded: str, blob_dir: Path | None) -> str:
         blob_dir.mkdir(parents=True, exist_ok=True)
         target = blob_dir / digest
         if not target.exists():
-            target.write_bytes(raw)
+            state.write_bytes(target, raw)
     return digest
 
 
