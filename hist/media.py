@@ -93,7 +93,7 @@ def store_protected(paths: list) -> set:
 
 def rebuild_container(path: Path) -> None:
     """Copy the streams into a fresh MP4 container without re-encoding; store purchase data is dropped."""
-    tmp = path.with_name(path.stem + ".rebuild.m4a")
+    tmp = path.with_name(f".{path.stem}.rebuild.m4a")
     before = audio_md5(path)
     done = proc.run(
         ["ffmpeg", "-nostdin", "-y", "-v", "error", "-i", path, "-map", "0", "-c", "copy", "-map_metadata", "0", tmp],

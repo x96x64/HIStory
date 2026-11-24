@@ -5,6 +5,7 @@ file named in config.toml [store].
 """
 
 import hashlib
+import os
 import re
 import shutil
 import tempfile
@@ -94,11 +95,14 @@ def tag_flac(flac: Path, saved: Track, covers: Path) -> None:
 
 
 def to_alac(flac: Path, out: Path) -> None:
-    out.unlink(missing_ok=True)
-    done = proc.run(media.alac_command(flac, out), text=True)
-    if done.returncode or not out.exists():
-        out.unlink(missing_ok=True)
+    """Convert to a hidden temporary file (scans skip it), then move it to its name in one step."""
+    tmp = out.with_name(f".{out.stem}.converting.m4a")
+    tmp.unlink(missing_ok=True)
+    done = proc.run(media.alac_command(flac, tmp), text=True)
+    if done.returncode or not tmp.exists():
+        tmp.unlink(missing_ok=True)
         raise ConvertError("ffmpeg failed: " + done.stderr.strip()[-200:])
+    os.replace(tmp, out)
 
 
 def check_m4a(flac: Path, m4a: Path, saved: Track) -> None:
@@ -197,10 +201,11 @@ def remove_stale_outputs(config: Config, all_albums: list, done: set, only: str)
     for root in config.sources:
         if not root.is_dir():
             continue
-        for directory in sorted({p.parent for p in root.rglob("*.flac")}):
-            flacs = sorted(directory.glob("*.flac"))
-            m4as = sorted(directory.glob("*.m4a"))
-            if not m4as:
+        for directory in sorted({p.parent for p in root.rglob("*") if p.suffix.lower() == ".flac"}):
+            entries = sorted(p for p in directory.iterdir() if not p.name.startswith(".") and p.is_file())
+            flacs = [p for p in entries if p.suffix.lower() == ".flac"]
+            m4as = [p for p in entries if p.suffix.lower() == ".m4a"]
+            if not m4as or not flacs:
                 continue
             probe = tags.read_tracks([(str(directory), str(flacs[0]))])
             if not probe:
@@ -235,10 +240,14 @@ def stage_store_file(config: Config, done: set) -> bool:
     if time.time() - src.stat().st_mtime < 40:
         return False
     dst.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(src, dst)
-    if media.sha256(dst) != media.sha256(src):
-        dst.unlink()
-        return False
+    tmp = dst.with_name(f".{dst.name}.copying")
+    try:
+        shutil.copy2(src, tmp)
+        if media.sha256(tmp) != media.sha256(src):
+            return False
+        os.replace(tmp, dst)
+    finally:
+        tmp.unlink(missing_ok=True)
     return True
 
 
