@@ -1,6 +1,10 @@
+import logging
+
+import pytest
 from conftest import needs_tools, spec
 
 from hist import catalog, convert, media, state, tags
+from hist.log import log
 
 pytestmark = needs_tools
 
@@ -30,11 +34,13 @@ def test_convert_writes_exact_tags_and_removes_flac(env):
     assert "Hits" in state.converted(env.config().state).names()
 
 
-def test_keep_flac_and_dry_run(env, capsys):
+def test_keep_flac_and_dry_run(env, caplog, monkeypatch):
     d = setup_album(env)
-    convert.run_once(env.config(), convert.Options(dry_run=True))
+    monkeypatch.setattr(log, "handlers", [caplog.handler])  # the console handler exists only after main() ran
+    with caplog.at_level(logging.INFO, logger="hist"):
+        convert.run_once(env.config(), convert.Options(dry_run=True))
     assert len(list(d.glob("*.flac"))) == 3 and not list(d.glob("*.m4a"))
-    assert "->  One" in capsys.readouterr().out
+    assert "->  One" in caplog.text
     convert.run_once(env.config(), convert.Options(keep_flac=True))
     assert len(list(d.glob("*.flac"))) == 3 and len(list(d.glob("*.m4a"))) == 3
 
@@ -44,6 +50,25 @@ def test_stale_outputs_of_an_interrupted_run_are_replaced(env):
     (d / "garbage.m4a").write_bytes(b"not audio")
     convert.run_once(env.config(), convert.Options())
     assert sorted(p.name for p in d.glob("*.m4a")) == ["01 One.m4a", "02 Two.m4a", "03 Three.m4a"]
+
+
+def test_an_interrupted_album_is_resumed(env, monkeypatch):
+    d = setup_album(env)
+    real, calls = convert.process_file, []
+
+    def stop_after_first(*args):
+        if calls:
+            raise convert.ConvertError("interrupted")
+        calls.append(real(*args))
+
+    monkeypatch.setattr(convert, "process_file", stop_after_first)
+    with pytest.raises(convert.ConvertError):
+        convert.run_once(env.config(), convert.Options())
+    assert len(list(d.glob("*.flac"))) == 2 and len(list(d.glob("*.m4a"))) == 1
+    monkeypatch.setattr(convert, "process_file", real)
+    assert convert.run_once(env.config(), convert.Options()).converted == 1
+    assert sorted(p.name for p in d.glob("*.m4a")) == ["01 One.m4a", "02 Two.m4a", "03 Three.m4a"]
+    assert not list(d.glob("*.flac"))
 
 
 def test_alias_and_renumber(env):

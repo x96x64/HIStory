@@ -179,10 +179,14 @@ def pair_album(config: Config, album: dict, folder) -> list:
         for t in current:
             if t.number is not None:
                 t.number = (renumber["disc"], t.number[1] - renumber["offset"])
-    pairs, unmatched, _ = matching.pair_tracks(album["tracks"], current, "substring", 0.9, 0.85, True)
+    # tracks an interrupted run already converted are M4A files with the catalog's tags: leave them out
+    m4as = [(str(folder.path), str(p)) for p in folder.files if p.suffix.lower() == ".m4a"]
+    finished = {t.number for t in tags.read_tracks(m4as)} if m4as else set()
+    saved = [t for t in album["tracks"] if t.number not in finished]
+    pairs, unmatched, _ = matching.pair_tracks(saved, current, "substring", 0.9, 0.85, True)
     if unmatched or len(pairs) != len(current):
         raise ConvertError("not every FLAC could be matched to a catalog track; nothing was written")
-    return sorted(((Path(current[ci].path), album["tracks"][si]) for ci, si in pairs), key=lambda p: p[1].number)
+    return sorted(((Path(current[ci].path), saved[si]) for ci, si in pairs), key=lambda p: p[1].number)
 
 
 def remove_stale_outputs(config: Config, all_albums: list, done: set, only: str) -> int:

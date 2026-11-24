@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- `hist convert` and `hist watch` resume an album whose conversion was interrupted. Before, the tracks that were
+  already converted (their FLAC files deleted) were not counted, so the album was reported as "still downloading"
+  and never finished.
+
 ## [2.4.3] - 2026-11-24
 
 This release changes only how the npm package is published. It is the first release published to npm with Trusted
