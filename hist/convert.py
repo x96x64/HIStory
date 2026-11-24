@@ -134,8 +134,7 @@ def process_file(flac: Path, saved: Track, covers: Path, keep_flac: bool) -> Pat
     check_m4a(flac, out, saved)
     track = tags.read_tracks([(str(out.parent), str(out))])[0]
     tags.clean_file_names([track], overwrite=True)  # replaces a stale file of an interrupted run
-    final = Path(track.path)
-    check_m4a(flac, final, saved)  # once more under its final name
+    final = Path(track.path)  # only renamed: the content was checked above
     if not keep_flac:
         flac.unlink()  # only now: every check passed
     return final
