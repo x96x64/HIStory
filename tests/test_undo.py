@@ -72,3 +72,13 @@ def test_undo_refuses_a_damaged_backup_and_ignores_retag_backups(home):
     with pytest.raises(catalog.CatalogError, match="not valid JSON"):
         catalog.undo(config_mod.load(home))
     assert genres(home) == ["Soul", "Soul"]
+
+
+def test_undo_refuses_a_backup_with_malformed_dates(home):
+    main(["catalog", "set", "best", "Genre", "Soul"])
+    [backup] = (home / "state" / "backups").iterdir()
+    before = (home / "dates.json").read_bytes() if (home / "dates.json").exists() else None
+    (backup / "dates.json").write_text(json.dumps({"entries": [{"kind": "album", "path": "A/B", "date": "bad"}]}))
+    assert main(["catalog", "undo"]) == 1
+    assert ((home / "dates.json").read_bytes() if (home / "dates.json").exists() else None) == before
+    assert genres(home) == ["Soul", "Soul"]
