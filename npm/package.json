@@ -1,0 +1,26 @@
+{
+  "name": "his-story",
+  "version": "2.4.0",
+  "description": "Rebuild an Apple Music library on macOS from FLAC downloads with exact, verified tags",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/x96x64/HIStory.git"
+  },
+  "homepage": "https://github.com/x96x64/HIStory",
+  "bugs": {
+    "url": "https://github.com/x96x64/HIStory/issues"
+  },
+  "keywords": ["apple-music", "macos", "flac", "alac", "tagging", "metadata", "cli"],
+  "bin": {
+    "hist": "bin/hist.js"
+  },
+  "os": ["darwin", "linux"],
+  "engines": {
+    "node": ">=18"
+  },
+  "files": ["bin", "hist", "README.md", "LICENSE"],
+  "scripts": {
+    "prepack": "node scripts/prepack.js"
+  }
+}
