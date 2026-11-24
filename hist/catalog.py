@@ -4,9 +4,11 @@ tracks.json holds {"format": 2, "tracks": [{"file": ..., "tags": {...}, "blobs":
 track has inside the Music library (relative to the library folder); covers are stored in covers/<sha256>.
 """
 
+import datetime
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 
 from hist import matching, proc, state, tags
@@ -15,6 +17,7 @@ from hist.errors import HistError
 from hist.tags import Track
 
 FORMAT = 2
+RELEASE = re.compile(r"\d{4}-\d\d-\d\d")
 POLICY_DROP = ("ItemList:Comment", "ItemList:Encoder")
 PROTECTED_ADD = set(POLICY_DROP)
 PROTECTED_REMOVE = {
@@ -31,16 +34,44 @@ class CatalogError(HistError):
     code = "catalog"
 
 
+def check_record(record: object, where: str) -> None:
+    """Raise CatalogError unless record has the shape of a catalog record."""
+    if not isinstance(record, dict):
+        raise CatalogError(f"{where}: a track must be an object")
+    if not isinstance(record.get("file"), str):
+        raise CatalogError(f"{where}: 'file' must be a string")
+    where = f"{where} ({record['file']})"
+    tag_values = record.get("tags")
+    if not isinstance(tag_values, dict) or not all(isinstance(v, str) for v in tag_values.values()):
+        raise CatalogError(f"{where}: 'tags' must be an object of strings")
+    blobs = record.get("blobs")
+    if not isinstance(blobs, dict) or not all(
+        isinstance(v, list) and all(isinstance(h, str) for h in v) for v in blobs.values()
+    ):
+        raise CatalogError(f"{where}: 'blobs' must be an object of lists of digests")
+
+
 def read_records(config: Config) -> list[dict]:
+    """The records of tracks.json; raises CatalogError when the file is not valid JSON or is malformed."""
     if not config.tracks_file.exists():
         return []
-    data = json.loads(config.tracks_file.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(config.tracks_file.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as error:
+        raise CatalogError(f"{config.tracks_file} is not valid JSON: {error}") from None
+    if not isinstance(data, dict):
+        raise CatalogError(f"{config.tracks_file}: the top level must be an object (see docs/catalog-format.md)")
     if data.get("format") != FORMAT:
         raise CatalogError(
             f"{config.tracks_file}: unsupported format {data.get('format')!r}; "
             f"hist reads format {FORMAT} (see docs/catalog-format.md)"
         )
-    return data["tracks"]
+    records = data.get("tracks")
+    if not isinstance(records, list):
+        raise CatalogError(f"{config.tracks_file}: 'tracks' must be a list")
+    for number, record in enumerate(records, 1):
+        check_record(record, f"{config.tracks_file.name}: track {number}")
+    return records
 
 
 def write_records(config: Config, records: list[dict], backup: state.Backup) -> None:
@@ -57,9 +88,44 @@ def albums(config: Config) -> list[dict]:
     return matching.albums(load(config))
 
 
+KNOWN_TAGS = [
+    "Title",
+    "Artist",
+    "AlbumArtist",
+    "Album",
+    "Composer",
+    "Genre",
+    "Copyright",
+    "TrackNumber",
+    "DiskNumber",
+    "ContentCreateDate",
+    "Comment",
+    "Encoder",
+    "CoverArt",
+    "Lyrics",
+    "Grouping",
+    "Description",
+    "Compilation",
+    "Rating",
+    "Year",
+    "Conductor",
+    "Publisher",
+]
+CANONICAL = {name.lower(): name for name in KNOWN_TAGS}
+
+
 def short_tag(name: str) -> str:
-    """'Genre' -> 'ItemList:Genre'; a name with a group is kept."""
-    return name if ":" in name else f"ItemList:{name}"
+    """'Genre' -> 'ItemList:Genre'; a name with a group is kept. Known names are matched ignoring case."""
+    group, _, bare = name.rpartition(":")
+    bare = CANONICAL.get(bare.lower(), bare)
+    if not group:
+        return f"ItemList:{bare}"
+    return f"ItemList:{bare}" if group.lower() == "itemlist" else f"{group}:{bare}"
+
+
+def album_of(record: dict) -> str:
+    """The album name of a record ('' when it has none)."""
+    return record["tags"].get("ItemList:Album", "")
 
 
 def select_album(records: list[dict], text: str, exact: bool = False) -> str:
@@ -68,12 +134,12 @@ def select_album(records: list[dict], text: str, exact: bool = False) -> str:
     With exact, the album's name must equal text character for character.
     """
     if exact:
-        names = sorted({r["tags"]["ItemList:Album"] for r in records if r["tags"]["ItemList:Album"] == text})
+        names = sorted({album_of(r) for r in records if album_of(r) == text})
         if not names:
             raise CatalogError(f"no album is named '{text}'; run 'hist catalog list' to see the names")
         return names[0]
     wanted = tags.norm(text)
-    names = sorted({r["tags"]["ItemList:Album"] for r in records if wanted in tags.norm(r["tags"]["ItemList:Album"])})
+    names = sorted({album_of(r) for r in records if wanted in tags.norm(album_of(r))})
     exact = [n for n in names if tags.norm(n) == wanted]
     names = exact or names
     if len(names) != 1:
@@ -87,13 +153,19 @@ def select_album(records: list[dict], text: str, exact: bool = False) -> str:
 
 
 def record_number(record: dict) -> tuple:
+    """(disc, track) of a record; raises CatalogError when a number is not a number."""
     track = record["tags"].get("ItemList:TrackNumber", "").split()
     disc = record["tags"].get("ItemList:DiskNumber", "1").split()
-    return (int(disc[0]) if disc else 1, int(track[0]) if track else 0)
+    try:
+        return (int(disc[0]) if disc else 1, int(track[0]) if track else 0)
+    except ValueError:
+        raise CatalogError(
+            f"{record['file']}: TrackNumber '{' '.join(track)}' or DiskNumber '{' '.join(disc)}' is not a number"
+        ) from None
 
 
 def pick_records(records: list[dict], album: str, disc: int | None, track: int | None) -> list[dict]:
-    picked = [r for r in records if r["tags"]["ItemList:Album"] == album]
+    picked = [r for r in records if album_of(r) == album]
     if track is not None:
         picked = [r for r in picked if record_number(r)[1] == track and (disc is None or record_number(r)[0] == disc)]
     elif disc is not None:
@@ -106,27 +178,26 @@ def pick_records(records: list[dict], album: str, disc: int | None, track: int |
 def set_tag(
     config: Config, album_text: str, tag: str, value: str | None, disc=None, track=None, exact: bool = False
 ) -> tuple:
-    """Set (value given) or remove (value None) one tag; returns (album, changed, selected)."""
-    tag = short_tag(tag)
-    if value is not None and tag in PROTECTED_ADD:
-        raise CatalogError(f"{tag} is never stored in the catalog")
-    if value is None and tag in PROTECTED_REMOVE:
-        raise CatalogError(f"{tag} is required on every track")
+    """Set (value given) or remove (value None) one tag; returns (album, changed, selected).
+
+    The change is checked exactly like an operation of 'catalog edit' (see edit.check_operation).
+    """
+    from hist import edit
+
     records = read_records(config)
     album = select_album(records, album_text, exact)
     picked = pick_records(records, album, disc, track)
-    changed = 0
-    for r in picked:
-        if value is not None:
-            if r["tags"].get(tag) != value:
-                r["tags"][tag] = value
-                changed += 1
-        elif r["tags"].pop(tag, None) is not None:
-            changed += 1
-    if changed:
+    op = {"op": "unset" if value is None else "set", "album": album, "tag": tag, "exact": True}
+    if value is not None:
+        op["value"] = value
+    for key, number in (("disc", disc), ("track", track)):
+        if number is not None:
+            op[key] = number
+    _, new, found = edit.compute(config, [op])
+    if found:
         command = "catalog-set" if value is not None else "catalog-unset"
-        write_records(config, records, state.Backup(config.state, command))
-    return album, changed, len(picked)
+        write_records(config, new, state.Backup(config.state, command))
+    return album, len(found), len(picked)
 
 
 def remove_album(config: Config, album_text: str, dry_run: bool = False, exact: bool = False) -> dict:
@@ -138,11 +209,16 @@ def remove_album(config: Config, album_text: str, dry_run: bool = False, exact: 
     """
     records = read_records(config)
     album = select_album(records, album_text, exact)
-    keep = [r for r in records if r["tags"]["ItemList:Album"] != album]
-    gone = [r for r in records if r["tags"]["ItemList:Album"] == album]
+    keep = [r for r in records if album_of(r) != album]
+    gone = [r for r in records if album_of(r) == album]
     folders = {r["file"].rsplit("/", 1)[0] for r in gone}
 
-    doc = json.loads(config.dates_file.read_text(encoding="utf-8")) if config.dates_file.exists() else {"entries": []}
+    try:
+        doc = state.read_json(config.dates_file, {"entries": []})
+        if not isinstance(doc, dict) or not isinstance(doc.get("entries"), list):
+            raise ValueError("'entries' must be a list")
+    except ValueError as error:
+        raise CatalogError(f"{config.dates_file} is malformed: {error}") from None
     left = [e for e in doc["entries"] if not (e.get("kind") == "album" and e.get("path") in folders)]
     artists_in_use = {r["file"].split("/")[0] for r in keep} | {
         e["path"].split("/")[0] for e in left if e.get("kind") == "album"
@@ -249,11 +325,61 @@ def build_records(spec: dict, digest: str) -> list[dict]:
     return records
 
 
+def check_spec(spec: dict) -> None:
+    """Raise CatalogError, listing every problem, unless the spec describes a consistent album."""
+    problems = []
+    for key in ("album", "album_artist"):
+        if not isinstance(spec.get(key), str) or not spec[key]:
+            problems.append(f"'{key}' must be a non-empty string")
+    release = spec.get("release")
+    try:
+        if not isinstance(release, str) or not RELEASE.fullmatch(release):
+            raise ValueError
+        datetime.date.fromisoformat(release)
+    except ValueError:
+        problems.append(f"'release' must be a date like 2001-02-03, not {release!r}")
+    discs = spec.get("discs")
+    if not isinstance(discs, int) or isinstance(discs, bool) or discs < 1:
+        problems.append("'discs' must be an integer of at least 1")
+        discs = None
+    if not isinstance(spec.get("tracks"), list) or not spec["tracks"]:
+        problems.append("'tracks' must be a non-empty list")
+    else:
+        seen = set()
+        for number, t in enumerate(spec["tracks"], 1):
+            if not isinstance(t, dict):
+                problems.append(f"track {number}: must be an object")
+                continue
+            missing = [k for k in ("disc", "track", "title", "artist", "genre") if k not in t]
+            if missing:
+                problems.append(f"track {number}: {', '.join(missing)} missing")
+                continue
+            disc, track = t["disc"], t["track"]
+            if any(not isinstance(n, int) or isinstance(n, bool) or n < 1 for n in (disc, track)):
+                problems.append(f"track {number}: 'disc' and 'track' must be integers of at least 1")
+                continue
+            if discs is not None and disc > discs:
+                problems.append(f"track {number}: disc {disc} is more than the {discs} discs of the album")
+            if (disc, track) in seen:
+                problems.append(f"track {number}: disc {disc}, track {track} is listed twice")
+            seen.add((disc, track))
+    if problems:
+        raise CatalogError("the spec is invalid:\n" + "\n".join(problems))
+
+
 def add_spec(config: Config, spec: dict, flac_dir: Path, dry_run: bool = False) -> int:
+    check_spec(spec)
+    for r in read_records(config):
+        if album_of(r) == spec["album"] and r["tags"].get("ItemList:AlbumArtist") != spec["album_artist"]:
+            raise CatalogError(
+                f"the catalog already has an album named '{spec['album']}' by "
+                f"'{r['tags'].get('ItemList:AlbumArtist', '')}'; 'catalog add' would replace it with the album of "
+                f"'{spec['album_artist']}'. Run 'hist catalog remove' first if that is what you want"
+            )
     records, picture = spec_records(config, spec, flac_dir)
     if dry_run:
         return len(records)
-    existing = [r for r in read_records(config) if r["tags"]["ItemList:Album"] != spec["album"]]
+    existing = [r for r in read_records(config) if album_of(r) != spec["album"]]
     config.covers.mkdir(parents=True, exist_ok=True)
     cover = config.covers / records[0]["blobs"]["ItemList:CoverArt"][0]
     if not cover.exists():
@@ -286,7 +412,7 @@ def set_cover(config: Config, album_text: str, image: Path, exact: bool = False)
     digest = hashlib.sha256(picture).hexdigest()
     records = read_records(config)
     album = select_album(records, album_text, exact)
-    picked = [r for r in records if r["tags"]["ItemList:Album"] == album]
+    picked = [r for r in records if album_of(r) == album]
     changed = [r for r in picked if r["blobs"].get("ItemList:CoverArt") != [digest]]
     if changed:
         stored = config.covers / digest
@@ -308,7 +434,7 @@ def export_spec(config: Config, album_text: str, exact: bool = False, cover_to: 
     """
     records = read_records(config)
     album = select_album(records, album_text, exact)
-    picked = sorted((r for r in records if r["tags"]["ItemList:Album"] == album), key=record_number)
+    picked = sorted((r for r in records if album_of(r) == album), key=record_number)
     first_tags = picked[0]["tags"]
     warnings = []
 
@@ -428,7 +554,11 @@ def check(config: Config) -> list[str]:
             problems.append(f"covers/{digest[:12]}: the file's content does not match its name")
     seen = {}
     for r in records:
-        key = (r["tags"].get("ItemList:Album"), record_number(r))
+        try:
+            key = (album_of(r), record_number(r))
+        except CatalogError as error:
+            problems.append(str(error))
+            continue
         if key in seen:
             problems.append(f"{r['file']}: same album, disc and track as {seen[key]}")
         seen[key] = r["file"]

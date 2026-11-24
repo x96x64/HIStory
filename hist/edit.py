@@ -97,7 +97,7 @@ def track_label(record: dict) -> dict:
     disc, number = catalog.record_number(record)
     return {
         "file": record["file"],
-        "album": record["tags"]["ItemList:Album"],
+        "album": catalog.album_of(record),
         "disc": disc,
         "track": number,
         "title": record["tags"].get("ItemList:Title", ""),
@@ -138,7 +138,7 @@ def compute(config: Config, operations: list, exact: bool = False) -> tuple:
                 new[i]["tags"].pop(tag, None)
     seen, problems = {}, []
     for r in new:
-        key = (r["tags"]["ItemList:Album"], catalog.record_number(r))
+        key = (catalog.album_of(r), catalog.record_number(r))
         if key in seen:
             problems.append(f"{r['file']}: would have the same album, disc and track as {seen[key]}")
         seen[key] = r["file"]
