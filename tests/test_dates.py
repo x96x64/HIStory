@@ -1,13 +1,11 @@
 import datetime
 import json
 import os
-import shutil
 
 import pytest
+from conftest import needs_setfile
 
 from hist import dates
-
-needs_setfile = pytest.mark.skipif(shutil.which("SetFile") is None, reason="SetFile is not installed")
 
 
 def entry(kind, path, day):

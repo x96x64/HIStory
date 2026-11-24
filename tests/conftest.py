@@ -15,6 +15,7 @@ from hist import catalog, config, music_app, tags
 
 TOOLS = ("ffmpeg", "ffprobe", "flac", "metaflac", "exiftool")
 needs_tools = pytest.mark.skipif(any(shutil.which(t) is None for t in TOOLS), reason="audio tools are not installed")
+needs_setfile = pytest.mark.skipif(shutil.which("SetFile") is None, reason="SetFile is not installed (macOS only)")
 
 
 @pytest.fixture(autouse=True)

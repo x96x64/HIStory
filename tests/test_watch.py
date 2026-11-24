@@ -7,7 +7,7 @@ import subprocess
 import threading
 
 import pytest
-from conftest import needs_tools, spec
+from conftest import needs_setfile, needs_tools, spec
 
 from hist import convert, library, runtime, state, watch
 
@@ -69,6 +69,7 @@ def quick(monkeypatch):
     monkeypatch.setattr(library, "SETTLE_SECONDS", 0)
 
 
+@needs_setfile
 def test_albums_you_add_are_checked_dated_and_forgotten_when_removed(env, quick):
     prepared(env)
     cfg = env.config()
@@ -98,6 +99,7 @@ def test_an_album_whose_files_differ_is_not_dated(env, quick):
     assert "Alpha" in follower.missing()
 
 
+@needs_setfile
 def test_watch_ends_when_every_album_is_converted_and_added(env, quick):
     prepared(env)
     add_in_music(env, "Alpha")
@@ -112,6 +114,7 @@ def test_convert_only_does_not_wait_for_the_library(env):
     assert state.added(env.config().state).names() == set()
 
 
+@needs_setfile
 def test_watch_ends_at_once_when_everything_is_already_in_the_library(env, quick):
     prepared(env)
     add_in_music(env, "Alpha")

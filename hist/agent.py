@@ -188,7 +188,7 @@ def agents_md(repository: bool = False) -> str:
                     "`tests/conftest.py` points `HOME` and `HISTORY_HOME` into a temporary folder and makes "
                     "`MusicApp.osa` fail, so a test can never touch the real Music app or catalog.",
                     "Add or update tests for every change, and run the whole suite before you commit. Tests "
-                    "that need ffmpeg, flac or exiftool skip themselves when the tools are missing.",
+                    "that need ffmpeg, flac, exiftool or SetFile skip themselves when the tools are missing.",
                 ]
             ),
             "## Using hist to Edit Metadata\n",

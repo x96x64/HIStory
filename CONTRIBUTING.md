@@ -24,7 +24,7 @@ python3 -m venv .venv
 ```
 
 Use `ruff check --fix .` and `ruff format .` to correct what can be corrected automatically. Lines are at most 120
-characters. Tests that need `ffmpeg`, `flac` or `exiftool` skip themselves when the tools are missing, and no test
+characters. Tests that need `ffmpeg`, `flac`, `exiftool` or `SetFile` skip themselves when the tools are missing, and no test
 touches a real Music app or catalog. Add or update tests for every change.
 
 The npm wrapper in `npm/` is checked by `tests/test_npm.py` when Node.js 18 or newer is installed.
