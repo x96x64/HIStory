@@ -3,6 +3,7 @@
 hist never adds albums to the Music app; you add them yourself. Reading may launch the Music app. The commands that
 change it on request (refresh, evacuate, store-entries --delete) say so in their help.
 """
+
 import datetime
 import subprocess
 import time
@@ -86,8 +87,10 @@ class MusicApp:
         if done.returncode != 0:
             if any(code in done.stderr for code in ("(-609)", "(-600)", "(-1712)")):
                 # -609 connection invalid, -600 not running, -1712 timed out
-                raise MusicError("the Music app was quit or stopped responding while hist was using it. "
-                                 "Open the Music app and run the command again; finished work is kept")
+                raise MusicError(
+                    "the Music app was quit or stopped responding while hist was using it. "
+                    "Open the Music app and run the command again; finished work is kept"
+                )
             raise MusicError("osascript failed: " + done.stderr.strip())
         return done.stdout.strip("\n")
 
@@ -96,9 +99,18 @@ class MusicApp:
         for line in self.osa(QUERY, album).splitlines():
             parts = line.split("\t")
             if len(parts) == 8:
-                rows.append({"id": parts[0], "name": parts[1], "album": parts[2], "album_artist": parts[3],
-                             "artist": parts[4], "track": int(parts[5] or 0), "disc": int(parts[6] or 0) or 1,
-                             "location": parts[7]})
+                rows.append(
+                    {
+                        "id": parts[0],
+                        "name": parts[1],
+                        "album": parts[2],
+                        "album_artist": parts[3],
+                        "artist": parts[4],
+                        "track": int(parts[5] or 0),
+                        "disc": int(parts[6] or 0) or 1,
+                        "location": parts[7],
+                    }
+                )
         return rows
 
     def summary(self) -> list[tuple]:

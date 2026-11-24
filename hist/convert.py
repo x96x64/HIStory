@@ -3,6 +3,7 @@
 Nothing here writes to the Music app or the Music library folder. The library is only read, to copy out a store
 file named in config.toml [store].
 """
+
 import hashlib
 import re
 import shutil
@@ -31,6 +32,7 @@ class Options:
 
 # ------------------------------------------------------------------ one file
 
+
 def of_pair(text: str):
     m = re.match(r"\s*(\d+)\s+of\s+(\d+)", text or "")
     return (int(m.group(1)), int(m.group(2))) if m else (None, None)
@@ -46,9 +48,16 @@ def vorbis_tags(t: dict) -> dict:
     # ffmpeg turns TRACKNUMBER=1/12 into 'N of M' and DATE=...T00:00:00Z into the M4A release date.
     n, total = of_pair(t.get("ItemList:TrackNumber"))
     d, discs = of_pair(t.get("ItemList:DiskNumber"))
-    out = {"TITLE": t["ItemList:Title"], "ARTIST": t["ItemList:Artist"], "ALBUMARTIST": t["ItemList:AlbumArtist"],
-           "ALBUM": t["ItemList:Album"], "GENRE": t["ItemList:Genre"], "DATE": iso_date(t["ItemList:ContentCreateDate"]),
-           "TRACKNUMBER": f"{n}/{total}", "DISCNUMBER": f"{d}/{discs}"}
+    out = {
+        "TITLE": t["ItemList:Title"],
+        "ARTIST": t["ItemList:Artist"],
+        "ALBUMARTIST": t["ItemList:AlbumArtist"],
+        "ALBUM": t["ItemList:Album"],
+        "GENRE": t["ItemList:Genre"],
+        "DATE": iso_date(t["ItemList:ContentCreateDate"]),
+        "TRACKNUMBER": f"{n}/{total}",
+        "DISCNUMBER": f"{d}/{discs}",
+    }
     for key, tag in (("COMPOSER", "ItemList:Composer"), ("COPYRIGHT", "ItemList:Copyright")):
         if t.get(tag):
             out[key] = t[tag]
@@ -71,12 +80,16 @@ def tag_flac(flac: Path, saved: Track, covers: Path) -> None:
     shown = proc.run(["metaflac", "--export-tags-to=-", flac], text=True).stdout
     found = dict(line.split("=", 1) for line in shown.splitlines() if "=" in line)
     if found != expected:
-        raise ConvertError(f"the FLAC tags differ from what was written: "
-                           f"{sorted(set(found.items()) ^ set(expected.items()))[:4]}")
+        raise ConvertError(
+            f"the FLAC tags differ from what was written: {sorted(set(found.items()) ^ set(expected.items()))[:4]}"
+        )
     with tempfile.TemporaryDirectory() as tmp:
         picture = Path(tmp) / "cover"
         proc.run(["metaflac", f"--export-picture-to={picture}", flac])
-        if not picture.exists() or hashlib.sha256(picture.read_bytes()).hexdigest() != saved.blobs["ItemList:CoverArt"][0]:
+        if (
+            not picture.exists()
+            or hashlib.sha256(picture.read_bytes()).hexdigest() != saved.blobs["ItemList:CoverArt"][0]
+        ):
             raise ConvertError("the cover inside the FLAC is not the catalog's image")
 
 
@@ -99,8 +112,11 @@ def check_m4a(flac: Path, m4a: Path, saved: Track) -> None:
     if not got:
         raise ConvertError("the M4A tags could not be read")
     if got[0].tags != saved.tags or got[0].blobs != saved.blobs:
-        diff = {k: (got[0].tags.get(k), saved.tags.get(k)) for k in set(got[0].tags) | set(saved.tags)
-                if got[0].tags.get(k) != saved.tags.get(k)}
+        diff = {
+            k: (got[0].tags.get(k), saved.tags.get(k))
+            for k in set(got[0].tags) | set(saved.tags)
+            if got[0].tags.get(k) != saved.tags.get(k)
+        }
         raise ConvertError(f"the M4A tags differ from the catalog: {diff or 'the cover differs'}")
     stray = tags.metadata_atoms(str(m4a)) - set(saved.tags) - set(saved.blobs)
     if stray:
@@ -113,15 +129,16 @@ def process_file(flac: Path, saved: Track, covers: Path, keep_flac: bool) -> Pat
     to_alac(flac, out)
     check_m4a(flac, out, saved)
     track = tags.read_tracks([(str(out.parent), str(out))])[0]
-    tags.clean_file_names([track], overwrite=True)   # replaces a stale file of an interrupted run
+    tags.clean_file_names([track], overwrite=True)  # replaces a stale file of an interrupted run
     final = Path(track.path)
-    check_m4a(flac, final, saved)                    # once more under its final name
+    check_m4a(flac, final, saved)  # once more under its final name
     if not keep_flac:
-        flac.unlink()                                # only now: every check passed
+        flac.unlink()  # only now: every check passed
     return final
 
 
 # ------------------------------------------------------------------- albums
+
 
 def selected(album: dict, only: str) -> bool:
     return not only or tags.norm(only) in tags.norm(album["name"])
@@ -137,9 +154,12 @@ def album_state(config: Config, album: dict, folders: list, all_albums: list):
         # a folder that fits another album better belongs to that one (a short name inside a longer one)
         mine = tags.similarity(folder.album, album["key"][0], "substring")
         for other in all_albums:
-            if other["name"] != album["name"] and other["key"] != album["key"] and \
-                    tags.similarity(folder.album, other["key"][0], "substring") > mine + 0.005 and \
-                    tags.similarity(folder.artist, other["key"][1], "substring") >= 0.9:
+            if (
+                other["name"] != album["name"]
+                and other["key"] != album["key"]
+                and tags.similarity(folder.album, other["key"][0], "substring") > mine + 0.005
+                and tags.similarity(folder.artist, other["key"][1], "substring") >= 0.9
+            ):
                 return None, f"{folder.path} belongs to the better-matching album {other['name']}"
     if folder is None:
         return None, why
@@ -152,10 +172,10 @@ def pair_album(config: Config, album: dict, folder) -> list:
     flacs = sorted(p for p in folder.files if p.suffix.lower() == ".flac")
     current = tags.read_tracks([(str(folder.path), str(p)) for p in flacs])
     if config.aliases.get(album["name"]):
-        for t in current:          # the download folder is named differently; compare as the catalog's album
+        for t in current:  # the download folder is named differently; compare as the catalog's album
             t.album = tags.norm(album["name"])
     renumber = config.renumber.get(album["name"])
-    if renumber:                   # one disc of a larger set, numbered on from the earlier discs
+    if renumber:  # one disc of a larger set, numbered on from the earlier discs
         for t in current:
             if t.number is not None:
                 t.number = (renumber["disc"], t.number[1] - renumber["offset"])
@@ -182,10 +202,15 @@ def remove_stale_outputs(config: Config, all_albums: list, done: set, only: str)
             if not probe:
                 continue
             first = probe[0]
-            album = next((a for a in all_albums
-                          if tags.similarity(tags.norm(tags.pick(first.tags, "album")), a["key"][0], "substring") >= 0.9
-                          and tags.similarity(tags.norm(tags.pick(first.tags, "artist")), a["key"][1], "substring") >= 0.9),
-                         None)
+            album = next(
+                (
+                    a
+                    for a in all_albums
+                    if tags.similarity(tags.norm(tags.pick(first.tags, "album")), a["key"][0], "substring") >= 0.9
+                    and tags.similarity(tags.norm(tags.pick(first.tags, "artist")), a["key"][1], "substring") >= 0.9
+                ),
+                None,
+            )
             if album is None or album["name"] in done or not selected(album, only):
                 continue
             stems = {p.stem for p in flacs}
@@ -214,7 +239,7 @@ def stage_store_file(config: Config, done: set) -> bool:
 
 
 def run_store_album(config: Config, album: dict, folder) -> int:
-    """Stand-alone store M4A files: rebuild the container (drops purchase data), strip every tag, write the catalog's."""
+    """Stand-alone store M4A files: rebuild the container (drops purchases), strip every tag, write the catalog's."""
     m4as = sorted(p for p in folder.files if p.suffix.lower() == ".m4a")
     for path in m4as:
         if media.has_store_protection(path):
@@ -243,7 +268,7 @@ class Pass:
 def run_once(config: Config, options: Options, stopping=lambda: False) -> Pass:
     """Convert every complete album once, oldest release first. Raises ConvertError on the first problem."""
     progress = state.converted(config.state)
-    done = progress.names() | state.added(config.state).names()      # an album in the library is finished
+    done = progress.names() | state.added(config.state).names()  # an album in the library is finished
     if not options.dry_run and stage_store_file(config, done):
         log.info(f"Copied the store file of {config.store_album} out of the library for processing.")
     all_albums = catalog.albums(config)
@@ -262,7 +287,8 @@ def run_once(config: Config, options: Options, stopping=lambda: False) -> Pass:
             continue
         if not folder.has_flac:
             if album["name"] == config.store_album and any(
-                    media.has_store_protection(p) for p in folder.files if p.suffix.lower() == ".m4a"):
+                media.has_store_protection(p) for p in folder.files if p.suffix.lower() == ".m4a"
+            ):
                 if options.dry_run:
                     log.info(f"{album['name']}: the store file would be cleaned and retagged")
                     continue
@@ -291,8 +317,10 @@ def run_once(config: Config, options: Options, stopping=lambda: False) -> Pass:
         except (ConvertError, media.MediaError) as error:
             raise ConvertError(f"{album['name']}: {error} (the FLAC files that were not converted are kept)") from None
         progress.add(album["name"], tracks=folder.count)
-        log.info(f"Done: {album['name']} ({folder.count} tracks"
-                 + (", FLAC files kept)" if options.keep_flac else ", FLAC files removed after every check)"))
+        log.info(
+            f"Done: {album['name']} ({folder.count} tracks"
+            + (", FLAC files kept)" if options.keep_flac else ", FLAC files removed after every check)")
+        )
         result.converted += 1
     result.low_disk = tuple(low)
     return result
@@ -303,7 +331,9 @@ def show_pairing(config: Config, album: dict, folder) -> None:
     log.info(f"{album['name']}: {len(pairs)} tracks in {folder.path}")
     for flac, saved in pairs:
         disc, number = saved.number
-        log.info(f"  {disc}-{number:02d} {media.duration(flac):8.2f}s  {flac.name}  ->  {tags.pick(saved.tags, 'title')}")
+        log.info(
+            f"  {disc}-{number:02d} {media.duration(flac):8.2f}s  {flac.name}  ->  {tags.pick(saved.tags, 'title')}"
+        )
 
 
 def pending(config: Config, only: str = "") -> list:

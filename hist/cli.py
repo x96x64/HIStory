@@ -1,4 +1,5 @@
 """The 'hist' command line."""
+
 import argparse
 import json
 import logging
@@ -8,7 +9,8 @@ import signal
 import sys
 from pathlib import Path
 
-from hist import __version__, agent, catalog, config as config_mod, dates, proc, runtime, state
+from hist import __version__, agent, catalog, dates, proc, runtime, state
+from hist import config as config_mod
 from hist.errors import HistError
 from hist.log import emit_json, emit_json_error, hint, log, long_running, setup
 
@@ -25,6 +27,7 @@ class UsageError(Exception):
 
 
 # ----------------------------------------------------------------- commands
+
 
 def cmd_init(args, home: Path) -> int:
     cfg = config_mod.Config(home=home)
@@ -46,8 +49,10 @@ def cmd_init(args, home: Path) -> int:
             log.warning(p)
         records = catalog.read_records(cfg)
         agent.write_guides(home)
-        log.info(f"Copied the catalog from {src} to {home} ({len(records)} tracks, "
-                 f"{len(catalog.albums(cfg))} albums)" + (f"; {len(problems)} problems" if problems else ""))
+        log.info(
+            f"Copied the catalog from {src} to {home} ({len(records)} tracks, "
+            f"{len(catalog.albums(cfg))} albums)" + (f"; {len(problems)} problems" if problems else "")
+        )
         return EXIT_ERROR if problems else EXIT_OK
     home.mkdir(parents=True, exist_ok=True)
     (home / "covers").mkdir(exist_ok=True)
@@ -64,6 +69,7 @@ def cmd_init(args, home: Path) -> int:
 
 def cmd_doctor(args, cfg) -> int:
     from hist import doctor
+
     return doctor.run(cfg, args.json)
 
 
@@ -80,16 +86,19 @@ def cmd_status(args, cfg) -> int:
         proc.require_macos("status --music")
     from hist import status
     from hist.music_app import MusicApp
+
     return status.run(cfg, MusicApp() if args.music else None, args.json)
 
 
 def convert_options(args):
     from hist import convert
+
     return convert.Options(only=args.only or "", keep_flac=args.keep_flac, dry_run=getattr(args, "dry_run", False))
 
 
 def cmd_convert(args, cfg) -> int:
     from hist import convert
+
     options = convert_options(args)
     if options.dry_run:
         convert.run_once(cfg, options)
@@ -107,6 +116,7 @@ def cmd_watch(args, cfg) -> int:
     if not args.convert_only:
         proc.require_macos("hist watch (without --convert-only)")
     from hist import runtime, watch
+
     stopper = runtime.Stopper().install()
     with state.Lock(cfg.state, "convert"):
         long_running(Path(args.log).expanduser() if args.log else cfg.state / "logs" / "watch.log")
@@ -130,8 +140,19 @@ def entry_label(entry: dict) -> str:
 
 def dates_list(entries: list, root: Path, as_json: bool = False) -> int:
     if as_json:
-        emit_json({"entries": [{"kind": e["kind"], "path": e["path"], "date": f"{e['date']:%Y-%m-%d}",
-                                "in_library": (root / e["path"]).is_dir()} for e in entries]})
+        emit_json(
+            {
+                "entries": [
+                    {
+                        "kind": e["kind"],
+                        "path": e["path"],
+                        "date": f"{e['date']:%Y-%m-%d}",
+                        "in_library": (root / e["path"]).is_dir(),
+                    }
+                    for e in entries
+                ]
+            }
+        )
         return EXIT_OK
     for e in entries:
         here = (root / e["path"]).is_dir()
@@ -171,8 +192,10 @@ def dates_check(entries: list, root: Path, whole_library: bool, as_json: bool = 
         return EXIT_ERROR if wrong else EXIT_OK
     for w in wrong:
         log.info(f"  wrong date: {w}")
-    log.info(f"Checked {folders} folders and {files} files: "
-             + (f"{len(wrong)} with a wrong date" if wrong else "no mismatches"))
+    log.info(
+        f"Checked {folders} folders and {files} files: "
+        + (f"{len(wrong)} with a wrong date" if wrong else "no mismatches")
+    )
     if uncovered:
         log.warning(f"{uncovered} .m4a files of the library are not covered by dates.json")
     return EXIT_ERROR if wrong else EXIT_OK
@@ -199,8 +222,10 @@ def dates_apply(entries: list, root: Path, dry_run: bool) -> int:
         wrong = dates.check(e, root)
         done += 1
         failed += bool(wrong)
-        log.info(f"{entry_label(e)}: {len(dates.items(e, root))} items set"
-                 + (f", {len(wrong)} still differ" if wrong else ""))
+        log.info(
+            f"{entry_label(e)}: {len(dates.items(e, root))} items set"
+            + (f", {len(wrong)} still differ" if wrong else "")
+        )
     if not dry_run:
         log.info(f"Entries set: {done}, not in the library: {skipped}, problems: {failed}")
     return EXIT_ERROR if failed else EXIT_OK
@@ -217,9 +242,11 @@ def dates_set(args, cfg) -> int:
     elif done["previous"] == done["date"]:
         log.info(f"The {done['kind']} entry {path} already has the date {date}.")
     else:
-        log.info(f"Set the {done['kind']} entry {path} to {date}"
-                 + (f" (was {done['previous']})" if done["previous"] else "")
-                 + ". Run 'hist dates apply' to set the dates in the library.")
+        log.info(
+            f"Set the {done['kind']} entry {path} to {date}"
+            + (f" (was {done['previous']})" if done["previous"] else "")
+            + ". Run 'hist dates apply' to set the dates in the library."
+        )
     return EXIT_OK
 
 
@@ -257,6 +284,7 @@ def cmd_verify(args, cfg) -> int:
         proc.require_macos("verify --music")
     from hist import verify
     from hist.music_app import MusicApp
+
     roots = [Path(p).expanduser() for p in args.path] if args.path else [cfg.library]
     if args.downloads:
         roots += list(cfg.sources)
@@ -294,24 +322,48 @@ def album_tracks(cfg, args) -> tuple:
 def catalog_list(args, cfg) -> int:
     found = catalog.albums(cfg)
     if args.json:
-        emit_json({"albums": [{"name": a["name"], "album_artist": a["tracks"][0].tags.get("ItemList:AlbumArtist", ""),
-                               "release": a["release"], "tracks": len(a["tracks"]),
-                               "folder": str(Path(a["tracks"][0].path).parent.relative_to(cfg.library))}
-                              for a in found]})
+        emit_json(
+            {
+                "albums": [
+                    {
+                        "name": a["name"],
+                        "album_artist": a["tracks"][0].tags.get("ItemList:AlbumArtist", ""),
+                        "release": a["release"],
+                        "tracks": len(a["tracks"]),
+                        "folder": str(Path(a["tracks"][0].path).parent.relative_to(cfg.library)),
+                    }
+                    for a in found
+                ]
+            }
+        )
         return EXIT_OK
     for album in found:
         t = album["tracks"][0].tags
-        print(f"{album['release']}  {album['name'][:52]:52s}  {len(album['tracks']):3d}  "
-              f"{t.get('ItemList:AlbumArtist', '')}")
+        print(
+            f"{album['release']}  {album['name'][:52]:52s}  {len(album['tracks']):3d}  "
+            f"{t.get('ItemList:AlbumArtist', '')}"
+        )
     return EXIT_OK
 
 
 def catalog_show(args, cfg) -> int:
     album, picked = album_tracks(cfg, args)
     if args.json:
-        emit_json({"album": album, "tracks": [{"file": r["file"], "disc": catalog.record_number(r)[0],
-                                               "track": catalog.record_number(r)[1], "tags": r["tags"],
-                                               "blobs": r["blobs"]} for r in picked]})
+        emit_json(
+            {
+                "album": album,
+                "tracks": [
+                    {
+                        "file": r["file"],
+                        "disc": catalog.record_number(r)[0],
+                        "track": catalog.record_number(r)[1],
+                        "tags": r["tags"],
+                        "blobs": r["blobs"],
+                    }
+                    for r in picked
+                ],
+            }
+        )
     elif args.track is not None:
         for r in picked:
             print(f"file: {r['file']}")
@@ -330,10 +382,13 @@ def catalog_show(args, cfg) -> int:
 def catalog_set(args, cfg) -> int:
     setting = args.action == "set"
     with writer_lock(cfg):
-        album, changed, n = catalog.set_tag(cfg, args.album, args.tag, args.value if setting else None,
-                                            args.disc, args.track, args.exact)
-    log.info(f"{album}: {catalog.short_tag(args.tag)} {'set' if setting else 'removed'} on {changed} of "
-             f"{n} tracks" + (" (the previous tracks.json is kept in state/backups)" if changed else ""))
+        album, changed, n = catalog.set_tag(
+            cfg, args.album, args.tag, args.value if setting else None, args.disc, args.track, args.exact
+        )
+    log.info(
+        f"{album}: {catalog.short_tag(args.tag)} {'set' if setting else 'removed'} on {changed} of "
+        f"{n} tracks" + (" (the previous tracks.json is kept in state/backups)" if changed else "")
+    )
     if changed:
         hint("hist retag PATH --apply   (the files keep their old tags until then)")
     return EXIT_OK
@@ -343,9 +398,11 @@ def catalog_remove(args, cfg) -> int:
     with writer_lock(cfg):
         removed = catalog.remove_album(cfg, args.album, dry_run=args.dry_run, exact=args.exact)
     verb = "Would remove" if args.dry_run else "Removed"
-    log.info(f"{verb} {removed['album']} from the catalog: {removed['tracks']} tracks, "
-             f"{len(removed['dates'])} dates entries, "
-             f"{len(removed['covers'])} covers")
+    log.info(
+        f"{verb} {removed['album']} from the catalog: {removed['tracks']} tracks, "
+        f"{len(removed['dates'])} dates entries, "
+        f"{len(removed['covers'])} covers"
+    )
     for path in removed["dates"]:
         log.info(f"  dates entry: {path}")
     for digest in removed["covers"]:
@@ -374,7 +431,9 @@ def catalog_check(args, cfg) -> int:
         return EXIT_ERROR if problems else EXIT_OK
     for p in problems:
         log.info(p)
-    log.info(f"{len(catalog.read_records(cfg))} tracks: " + (f"{len(problems)} problems" if problems else "no problems"))
+    log.info(
+        f"{len(catalog.read_records(cfg))} tracks: " + (f"{len(problems)} problems" if problems else "no problems")
+    )
     return EXIT_ERROR if problems else EXIT_OK
 
 
@@ -394,21 +453,30 @@ def print_edit_report(report: dict) -> None:
             before = "<none>" if d["before"] is None else d["before"]
             after = "<removed>" if d["after"] is None else d["after"]
             log.info(f"    {d['tag']}: {before} -> {after}")
-    log.info(f"{report['operations']} operations, {report['tracks_changed']} tracks "
-             + ("would change" if report["dry_run"] else "changed")
-             + ("; nothing was written." if report["dry_run"] else
-                f" (the previous tracks.json is kept in {report['backup']})." if report["backup"] else "."))
+    log.info(
+        f"{report['operations']} operations, {report['tracks_changed']} tracks "
+        + ("would change" if report["dry_run"] else "changed")
+        + (
+            "; nothing was written."
+            if report["dry_run"]
+            else f" (the previous tracks.json is kept in {report['backup']})."
+            if report["backup"]
+            else "."
+        )
+    )
 
 
 def catalog_edit(args, cfg) -> int:
     from hist import edit
+
     if args.retag and args.json:
         raise UsageError("--retag cannot be combined with --json; run 'hist retag' afterwards")
     if args.retag and args.dry_run:
         raise UsageError("--retag cannot be combined with --dry-run")
     if args.file == "-" and sys.stdin.isatty():
-        raise UsageError("no operations given: pass FILE, or pipe a JSON array to standard input "
-                         "(see 'hist agent-help')")
+        raise UsageError(
+            "no operations given: pass FILE, or pipe a JSON array to standard input (see 'hist agent-help')"
+        )
     operations = edit.read_operations(args.file, sys.stdin)
     if args.dry_run:
         report = edit.run(cfg, operations, True, args.exact)
@@ -424,6 +492,7 @@ def catalog_edit(args, cfg) -> int:
         return EXIT_OK
     if args.retag:
         from hist import retag
+
         folders = [cfg.library / f for f in report["folders"] if (cfg.library / f).is_dir()]
         if not folders:
             log.info("None of the changed albums is in the library; nothing to retag.")
@@ -446,8 +515,9 @@ def next_steps(cfg, report: dict) -> list:
 def catalog_cover(args, cfg) -> int:
     with writer_lock(cfg):
         done = catalog.set_cover(cfg, args.album, Path(args.image), args.exact)
-    log.info(f"{done['album']}: the cover is covers/{done['cover']} on {done['tracks']} tracks "
-             f"({done['changed']} changed)")
+    log.info(
+        f"{done['album']}: the cover is covers/{done['cover']} on {done['tracks']} tracks ({done['changed']} changed)"
+    )
     if done["changed"]:
         hint("hist retag PATH --apply   (the files keep their old cover until then)")
     return EXIT_OK
@@ -467,9 +537,19 @@ def catalog_export(args, cfg) -> int:
     return EXIT_OK
 
 
-CATALOG_ACTIONS = {"list": catalog_list, "show": catalog_show, "set": catalog_set, "unset": catalog_set,
-                   "remove": catalog_remove, "add": catalog_add, "check": catalog_check, "import": catalog_import,
-                   "edit": catalog_edit, "cover": catalog_cover, "export": catalog_export}
+CATALOG_ACTIONS = {
+    "list": catalog_list,
+    "show": catalog_show,
+    "set": catalog_set,
+    "unset": catalog_set,
+    "remove": catalog_remove,
+    "add": catalog_add,
+    "check": catalog_check,
+    "import": catalog_import,
+    "edit": catalog_edit,
+    "cover": catalog_cover,
+    "export": catalog_export,
+}
 
 
 def cmd_catalog(args, cfg) -> int:
@@ -481,13 +561,16 @@ def cmd_catalog(args, cfg) -> int:
 
 def cmd_retag(args, cfg) -> int:
     from hist import retag
-    return retag.run(cfg, [Path(p).expanduser() for p in args.paths], args.apply, args.fields or "", args.prune,
-                     args.verbose_list)
+
+    return retag.run(
+        cfg, [Path(p).expanduser() for p in args.paths], args.apply, args.fields or "", args.prune, args.verbose_list
+    )
 
 
 def cmd_refresh(args, cfg) -> int:
     proc.require_macos("hist refresh")
     from hist.music_app import MusicApp
+
     music = MusicApp()
     records = catalog.read_records(cfg)
     name = catalog.select_album(records, args.album, args.exact)
@@ -505,6 +588,7 @@ def cmd_evacuate(args, cfg) -> int:
     proc.require_macos("hist evacuate")
     from hist import evacuate
     from hist.music_app import MusicApp
+
     return evacuate.run(cfg, MusicApp(), args.album or "", args.dry_run)
 
 
@@ -512,21 +596,25 @@ def cmd_store_entries(args, cfg) -> int:
     proc.require_macos("hist store-entries")
     from hist import store
     from hist.music_app import MusicApp
+
     return store.run(cfg, MusicApp(), args.delete)
 
 
 # ------------------------------------------------------------------ parser
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="hist",
         description="Rebuild an Apple Music library on macOS from FLAC downloads with exact, verified tags.",
         epilog="Run 'hist <command> --help' for the options of a command. Scripts and AI agents: read commands with "
-               "--json, change tags with 'hist catalog edit FILE --dry-run' and then without --dry-run, and run "
-               "'hist agent-help' for the guide.")
+        "--json, change tags with 'hist catalog edit FILE --dry-run' and then without --dry-run, and run "
+        "'hist agent-help' for the guide.",
+    )
     parser.add_argument("--version", action="version", version=f"hist {__version__}")
-    parser.add_argument("--home", metavar="DIR", help="catalog folder (default: $HISTORY_HOME or "
-                                                       "~/Library/Application Support/HIStory)")
+    parser.add_argument(
+        "--home", metavar="DIR", help="catalog folder (default: $HISTORY_HOME or ~/Library/Application Support/HIStory)"
+    )
     parser.add_argument("-q", "--quiet", action="store_true", help="print warnings and errors only")
     parser.add_argument("-v", "--verbose", action="store_true", help="print more detail")
     sub = parser.add_subparsers(dest="command", metavar="<command>", title="commands")
@@ -537,8 +625,9 @@ def build_parser() -> argparse.ArgumentParser:
         return p
 
     p = add("init", cmd_init, "create the catalog folder, or copy an existing catalog into it")
-    p.add_argument("--from", dest="source", metavar="DIR", help="copy this catalog (config.toml, tracks.json, "
-                                                                "covers/, dates.json)")
+    p.add_argument(
+        "--from", dest="source", metavar="DIR", help="copy this catalog (config.toml, tracks.json, covers/, dates.json)"
+    )
     p.add_argument("--force", action="store_true", help="replace a catalog that already holds tracks")
 
     p = add("doctor", cmd_doctor, "check the tools, the configuration and the catalog")
@@ -554,29 +643,40 @@ def build_parser() -> argparse.ArgumentParser:
     def convert_args(p):
         p.add_argument("--only", metavar="TEXT", help="only albums whose name contains TEXT")
         p.add_argument("--keep-flac", action="store_true", help="keep the FLAC files after the checks")
-        p.add_argument("--source", action="append", metavar="DIR", help="download folder instead of the "
-                                                                         "configured ones (repeatable)")
+        p.add_argument(
+            "--source",
+            action="append",
+            metavar="DIR",
+            help="download folder instead of the configured ones (repeatable)",
+        )
 
     p = add("convert", cmd_convert, "convert every complete download once (tags, ALAC, checks)")
     convert_args(p)
     p.add_argument("--dry-run", action="store_true", help="show how the files would be paired; write nothing")
 
-    p = add("watch", cmd_watch, "convert downloads as they complete and set the dates of albums you add to the "
-                                "Music app; ends when every album is converted and in the library")
+    p = add(
+        "watch",
+        cmd_watch,
+        "convert downloads as they complete and set the dates of albums you add to the "
+        "Music app; ends when every album is converted and in the library",
+    )
     convert_args(p)
-    p.add_argument("--convert-only", action="store_true", help="do not watch the library; end when every album "
-                                                               "is converted")
+    p.add_argument(
+        "--convert-only", action="store_true", help="do not watch the library; end when every album is converted"
+    )
     p.add_argument("--interval", type=float, default=10, metavar="SECONDS", help="time between looks (default 10)")
     p.add_argument("--log", metavar="FILE", help="log file (default: <home>/state/logs/watch.log)")
 
     add("stop", cmd_stop, "ask a running watch or convert to stop after the current album")
 
-    p = add("dates", cmd_dates, "list, set or check the dates of the library's folders and files, "
-                                "or edit dates.json")
+    p = add("dates", cmd_dates, "list, set or check the dates of the library's folders and files, or edit dates.json")
     p.add_argument("action", choices=("list", "apply", "check", "script", "set", "unset"))
     p.add_argument("operands", nargs="*", metavar="ARG", help="(set) PATH DATE; (unset) PATH")
-    p.add_argument("--kind", choices=("album", "artist"), help="(set) the entry's kind (default: from the path: "
-                                                                "Artist is artist, Artist/Album is album)")
+    p.add_argument(
+        "--kind",
+        choices=("album", "artist"),
+        help="(set) the entry's kind (default: from the path: Artist is artist, Artist/Album is album)",
+    )
     p.add_argument("--json", action="store_true", help="(list, set, unset) print JSON instead of text")
     p.add_argument("--only", default="", metavar="TEXT", help="only entries whose path contains TEXT")
     p.add_argument("--dry-run", action="store_true", help="(apply) show what would be set")
@@ -584,14 +684,16 @@ def build_parser() -> argparse.ArgumentParser:
     p = add("verify", cmd_verify, "check the library's files (and optionally the Music app) against the catalog")
     p.add_argument("--music", action="store_true", help="also check the Music app's entries")
     p.add_argument("--downloads", action="store_true", help="also check converted files in the download folders")
-    p.add_argument("--path", action="append", metavar="DIR", help="check this folder instead of the library "
-                                                                   "(repeatable)")
+    p.add_argument(
+        "--path", action="append", metavar="DIR", help="check this folder instead of the library (repeatable)"
+    )
     p.add_argument("--allow-missing", action="store_true", help="do not fail because tracks are missing")
     p.add_argument("--no-decode", action="store_true", help="skip decoding every file")
-    p.add_argument("--json", action="store_true", help="print {\"ok\": ..., \"lines\": [...]} instead of text")
+    p.add_argument("--json", action="store_true", help='print {"ok": ..., "lines": [...]} instead of text')
 
     p = add("catalog", cmd_catalog, "list, show, edit, add to, remove from and check the catalog")
     actions = p.add_subparsers(dest="action", metavar="<action>", required=True)
+
     def album_args(a, track=False):
         a.add_argument("--exact", action="store_true", help="ALBUM is the album's exact name, not text it contains")
         if track:
@@ -614,11 +716,15 @@ def build_parser() -> argparse.ArgumentParser:
     a.add_argument("tag")
     album_args(a, track=True)
     a = actions.add_parser("edit", help="apply a JSON array of set and unset operations in one step")
-    a.add_argument("file", nargs="?", default="-", metavar="FILE", help="the operations (default or '-': standard "
-                                                                        "input)")
+    a.add_argument(
+        "file", nargs="?", default="-", metavar="FILE", help="the operations (default or '-': standard input)"
+    )
     a.add_argument("--dry-run", action="store_true", help="show the changes per track; write nothing")
-    a.add_argument("--retag", action="store_true", help="then write the new tags into the albums' files in the "
-                                                        "library ('hist retag --apply')")
+    a.add_argument(
+        "--retag",
+        action="store_true",
+        help="then write the new tags into the albums' files in the library ('hist retag --apply')",
+    )
     a.add_argument("--exact", action="store_true", help="every album is an exact name, not text it contains")
     a.add_argument("--json", action="store_true", help="print the changes as JSON")
     a = actions.add_parser("cover", help="make an image the cover of every track of an album")
@@ -627,15 +733,21 @@ def build_parser() -> argparse.ArgumentParser:
     album_args(a)
     a = actions.add_parser("export", help="write an album as a spec file that 'catalog add' accepts")
     a.add_argument("album", help="text contained in the album name")
-    a.add_argument("-o", "--output", metavar="FILE", help="write the spec (and a copy of the cover) here "
-                                                          "instead of to standard output")
+    a.add_argument(
+        "-o",
+        "--output",
+        metavar="FILE",
+        help="write the spec (and a copy of the cover) here instead of to standard output",
+    )
     album_args(a)
     a = actions.add_parser("add", help="add an album from a spec file and its downloaded FLAC folder")
     a.add_argument("spec")
     a.add_argument("--from", dest="source", required=True, metavar="DIR", help="the album's FLAC folder")
     a.add_argument("--dry-run", action="store_true")
-    a = actions.add_parser("remove", help="remove an album from the catalog (after you removed it from the Music "
-                                          "app); the library is not touched")
+    a = actions.add_parser(
+        "remove",
+        help="remove an album from the catalog (after you removed it from the Music app); the library is not touched",
+    )
     a.add_argument("album", help="text contained in the album name")
     a.add_argument("--dry-run", action="store_true", help="show what would be removed")
     album_args(a)
@@ -687,8 +799,10 @@ def main(argv=None) -> int:
         if args.func is cmd_agent_help:
             return cmd_agent_help(args, home)
         if args.func is not cmd_doctor and not (home / "config.toml").exists() and not (home / "tracks.json").exists():
-            raise config_mod.ConfigError(f"there is no catalog in {home}; run 'hist init' to create one, or name "
-                                         "an existing one with --home DIR or the HISTORY_HOME variable")
+            raise config_mod.ConfigError(
+                f"there is no catalog in {home}; run 'hist init' to create one, or name "
+                "an existing one with --home DIR or the HISTORY_HOME variable"
+            )
         cfg = config_mod.load(home, getattr(args, "source", None) if args.func in (cmd_convert, cmd_watch) else None)
         if moved := state.migrate_backups(cfg.state):
             log.info(f"Moved {moved} old backups from state/history and state/snapshots to state/backups")
@@ -705,8 +819,11 @@ def main(argv=None) -> int:
         log.info("Interrupted.")
         return 130
     except state.LockHeld as error:
-        advice = ("; run 'hist stop' to stop it" if error.name == "convert"
-                  else "; wait for it to finish, then run the command again")
+        advice = (
+            "; run 'hist stop' to stop it"
+            if error.name == "convert"
+            else "; wait for it to finish, then run the command again"
+        )
         return fail(args, f"{error}{advice}", error.code, EXIT_ERROR)
     except proc.ToolError as error:
         return fail(args, f"{error}; run 'hist doctor'", error.code, EXIT_ERROR)

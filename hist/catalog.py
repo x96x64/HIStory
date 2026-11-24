@@ -3,6 +3,7 @@
 tracks.json holds {"format": 2, "tracks": [{"file": ..., "tags": {...}, "blobs": {...}}]}. "file" is the path the
 track has inside the Music library (relative to the library folder); covers are stored in covers/<sha256>.
 """
+
 import hashlib
 import json
 import os
@@ -16,8 +17,14 @@ from hist.tags import Track
 FORMAT = 2
 POLICY_DROP = ("ItemList:Comment", "ItemList:Encoder")
 PROTECTED_ADD = set(POLICY_DROP)
-PROTECTED_REMOVE = {"ItemList:DiskNumber", "ItemList:Title", "ItemList:Album", "ItemList:AlbumArtist",
-                    "ItemList:Artist", "ItemList:TrackNumber"}
+PROTECTED_REMOVE = {
+    "ItemList:DiskNumber",
+    "ItemList:Title",
+    "ItemList:Album",
+    "ItemList:AlbumArtist",
+    "ItemList:Artist",
+    "ItemList:TrackNumber",
+}
 
 
 class CatalogError(HistError):
@@ -29,8 +36,10 @@ def read_records(config: Config) -> list[dict]:
         return []
     data = json.loads(config.tracks_file.read_text(encoding="utf-8"))
     if data.get("format") != FORMAT:
-        raise CatalogError(f"{config.tracks_file}: unsupported format {data.get('format')!r}; "
-                           f"hist reads format {FORMAT} (see docs/catalog-format.md)")
+        raise CatalogError(
+            f"{config.tracks_file}: unsupported format {data.get('format')!r}; "
+            f"hist reads format {FORMAT} (see docs/catalog-format.md)"
+        )
     return data["tracks"]
 
 
@@ -69,8 +78,10 @@ def select_album(records: list[dict], text: str, exact: bool = False) -> str:
     names = exact or names
     if len(names) != 1:
         if names:
-            raise CatalogError(f"'{text}' must match exactly one album; it matches: {', '.join(names)}. "
-                               "Give more of the name, or pass --exact with the full name")
+            raise CatalogError(
+                f"'{text}' must match exactly one album; it matches: {', '.join(names)}. "
+                "Give more of the name, or pass --exact with the full name"
+            )
         raise CatalogError(f"'{text}' matches no album; run 'hist catalog list' to see the names")
     return names[0]
 
@@ -92,8 +103,9 @@ def pick_records(records: list[dict], album: str, disc: int | None, track: int |
     return sorted(picked, key=record_number)
 
 
-def set_tag(config: Config, album_text: str, tag: str, value: str | None, disc=None, track=None,
-            exact: bool = False) -> tuple:
+def set_tag(
+    config: Config, album_text: str, tag: str, value: str | None, disc=None, track=None, exact: bool = False
+) -> tuple:
     """Set (value given) or remove (value None) one tag; returns (album, changed, selected)."""
     tag = short_tag(tag)
     if value is not None and tag in PROTECTED_ADD:
@@ -132,8 +144,9 @@ def remove_album(config: Config, album_text: str, dry_run: bool = False, exact: 
 
     doc = json.loads(config.dates_file.read_text(encoding="utf-8")) if config.dates_file.exists() else {"entries": []}
     left = [e for e in doc["entries"] if not (e.get("kind") == "album" and e.get("path") in folders)]
-    artists_in_use = {r["file"].split("/")[0] for r in keep} | {e["path"].split("/")[0] for e in left
-                                                                if e.get("kind") == "album"}
+    artists_in_use = {r["file"].split("/")[0] for r in keep} | {
+        e["path"].split("/")[0] for e in left if e.get("kind") == "album"
+    }
     left = [e for e in left if not (e.get("kind") == "artist" and e.get("path") not in artists_in_use)]
     dates_removed = [e["path"] for e in doc["entries"] if e not in left]
 
@@ -156,6 +169,7 @@ def remove_album(config: Config, album_text: str, dry_run: bool = False, exact: 
 
 
 # -------------------------------------------------------------- spec files
+
 
 def read_spec(path: Path) -> dict:
     """Read a spec file; a relative 'cover' is taken relative to the spec file's folder."""
@@ -190,8 +204,9 @@ def spec_records(config: Config, spec: dict, flac_dir: Path) -> tuple:
         picture = proc.run(["metaflac", "--export-picture-to=-", flacs[0]]).stdout
         if not picture:
             raise CatalogError("the first FLAC file has no embedded picture; give the spec a 'cover'")
-        others = {hashlib.sha256(proc.run(["metaflac", "--export-picture-to=-", f]).stdout).hexdigest()
-                  for f in flacs[1:]} - {hashlib.sha256(picture).hexdigest()}
+        others = {
+            hashlib.sha256(proc.run(["metaflac", "--export-picture-to=-", f]).stdout).hexdigest() for f in flacs[1:]
+        } - {hashlib.sha256(picture).hexdigest()}
         if others:
             raise CatalogError("the FLAC files do not all carry the same picture; give the spec a 'cover'")
     digest = hashlib.sha256(picture).hexdigest()
@@ -204,12 +219,16 @@ def build_records(spec: dict, digest: str) -> list[dict]:
     for t in spec["tracks"]:
         per_disc[t["disc"]] = per_disc.get(t["disc"], 0) + 1
     date = spec["release"].replace("-", ":") + " 00:00:00Z"
-    folder = spec["album"].replace(":", "_")             # the Music app writes ':' as '_' in folder names
+    folder = spec["album"].replace(":", "_")  # the Music app writes ':' as '_' in folder names
     records = []
     for t in sorted(spec["tracks"], key=lambda x: (x["disc"], x["track"])):
         record_tags = {
-            "ItemList:Title": t["title"], "ItemList:Artist": t["artist"], "ItemList:AlbumArtist": spec["album_artist"],
-            "ItemList:Composer": t["composer"], "ItemList:Album": spec["album"], "ItemList:Genre": t["genre"],
+            "ItemList:Title": t["title"],
+            "ItemList:Artist": t["artist"],
+            "ItemList:AlbumArtist": spec["album_artist"],
+            "ItemList:Composer": t["composer"],
+            "ItemList:Album": spec["album"],
+            "ItemList:Genre": t["genre"],
             "ItemList:Copyright": t.get("copyright", spec.get("copyright")),
             "ItemList:TrackNumber": f"{t['track']} of {per_disc[t['disc']]}",
             "ItemList:ContentCreateDate": date,
@@ -217,11 +236,16 @@ def build_records(spec: dict, digest: str) -> list[dict]:
         }
         for key in ("ItemList:Composer", "ItemList:Copyright"):
             if not record_tags[key]:
-                record_tags.pop(key)                     # a blank value is stored as no tag at all
+                record_tags.pop(key)  # a blank value is stored as no tag at all
         prefix = f"{t['disc']}-" if spec["discs"] > 1 else ""
         name = f"{prefix}{t['track']:02d} {t['title']}.m4a"
-        records.append({"file": f"{spec['album_artist']}/{folder}/{name}", "tags": record_tags,
-                        "blobs": {"ItemList:CoverArt": [digest]}})
+        records.append(
+            {
+                "file": f"{spec['album_artist']}/{folder}/{name}",
+                "tags": record_tags,
+                "blobs": {"ItemList:CoverArt": [digest]},
+            }
+        )
     return records
 
 
@@ -239,6 +263,7 @@ def add_spec(config: Config, spec: dict, flac_dir: Path, dry_run: bool = False) 
 
 
 # ------------------------------------------------------------- cover, export
+
 
 def image_kind(picture: bytes) -> str | None:
     """'jpg' or 'png' for the bytes of such an image, else None."""
@@ -297,15 +322,24 @@ def export_spec(config: Config, album_text: str, exact: bool = False, cover_to: 
     tracks = []
     for r in picked:
         disc, number = record_number(r)
-        track = {"disc": disc, "track": number, "title": of(r, "Title"), "artist": of(r, "Artist"),
-                 "composer": of(r, "Composer"), "genre": of(r, "Genre")}
+        track = {
+            "disc": disc,
+            "track": number,
+            "title": of(r, "Title"),
+            "artist": of(r, "Artist"),
+            "composer": of(r, "Composer"),
+            "genre": of(r, "Genre"),
+        }
         if of(r, "Copyright") != common:
             track["copyright"] = of(r, "Copyright")
         tracks.append(track)
     discs = first_tags.get("ItemList:DiskNumber", "1 of 1").split()
-    spec = {"album": album, "album_artist": of(picked[0], "AlbumArtist"),
-            "release": of(picked[0], "ContentCreateDate")[:10].replace(":", "-"),
-            "discs": int(discs[-1]) if len(discs) == 3 else 1}
+    spec = {
+        "album": album,
+        "album_artist": of(picked[0], "AlbumArtist"),
+        "release": of(picked[0], "ContentCreateDate")[:10].replace(":", "-"),
+        "discs": int(discs[-1]) if len(discs) == 3 else 1,
+    }
     if common:
         spec["copyright"] = common
     covers = {tuple(r["blobs"].get("ItemList:CoverArt", ())) for r in picked}
@@ -341,6 +375,7 @@ def export_spec(config: Config, album_text: str, exact: bool = False, cover_to: 
 
 # ------------------------------------------------------------------ import
 
+
 def import_library(config: Config, source: Path) -> tuple:
     """Snapshot the tags of an existing library folder into the catalog, applying the tag policy."""
     if read_records(config):
@@ -360,6 +395,7 @@ def import_library(config: Config, source: Path) -> tuple:
 
 # ------------------------------------------------------------------- check
 
+
 def check(config: Config) -> list[str]:
     """Problems with the catalog's files (an empty list when everything is consistent)."""
     problems = []
@@ -370,8 +406,15 @@ def check(config: Config) -> list[str]:
     for r in records:
         where = r.get("file", "?")
         t = r.get("tags", {})
-        for key in ("ItemList:Title", "ItemList:Album", "ItemList:AlbumArtist", "ItemList:Artist",
-                    "ItemList:TrackNumber", "ItemList:DiskNumber", "ItemList:ContentCreateDate"):
+        for key in (
+            "ItemList:Title",
+            "ItemList:Album",
+            "ItemList:AlbumArtist",
+            "ItemList:Artist",
+            "ItemList:TrackNumber",
+            "ItemList:DiskNumber",
+            "ItemList:ContentCreateDate",
+        ):
             if key not in t:
                 problems.append(f"{where}: {key} is missing")
         for key in POLICY_DROP:

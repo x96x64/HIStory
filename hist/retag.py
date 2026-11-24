@@ -1,4 +1,5 @@
 """Writing the catalog's tags back into existing M4A files (for files converted before a catalog change)."""
+
 from collections import defaultdict
 from pathlib import Path
 
@@ -11,8 +12,7 @@ from hist.tags import Match
 def snapshot(config: Config, found: list) -> Path:
     """Save the current tags of the files before writing, in the catalog's format."""
     dest = state.Backup(config.state, "retag").folder()
-    records = [{"file": t.path, "tags": t.tags, "blobs": t.blobs}
-               for t in tags.read_tracks(found, dest / "covers")]
+    records = [{"file": t.path, "tags": t.tags, "blobs": t.blobs} for t in tags.read_tracks(found, dest / "covers")]
     state.write_json(dest / "tracks.json", {"format": catalog.FORMAT, "tracks": records})
     return dest
 
@@ -35,8 +35,10 @@ def run(config: Config, roots: list, apply: bool, fields: str, prune: bool, verb
             matches.append(Match(current[ci], saved[si], sets, blob_sets, deletes, (ci, si) in number_only))
         else:
             identical += 1
-    log.info(f"{len(current)} files: {len(pairs)} matched ({len(number_only)} without a similar title), "
-             f"{identical} already equal, {len(matches)} to change, {len(unmatched)} without a match")
+    log.info(
+        f"{len(current)} files: {len(pairs)} matched ({len(number_only)} without a similar title), "
+        f"{identical} already equal, {len(matches)} to change, {len(unmatched)} without a match"
+    )
     for m in matches:
         log.info(f"~ {m.current.path}" + ("  (matched by number or elimination)" if m.by_number else ""))
         for tag, value in m.sets.items():
@@ -49,7 +51,9 @@ def run(config: Config, roots: list, apply: bool, fields: str, prune: bool, verb
         for c, reason in unmatched:
             log.info(f"? {c.path}: {reason}")
     if skipped:
-        log.info("not writable by exiftool and left alone: " + ", ".join(f"{k} ({v})" for k, v in sorted(skipped.items())))
+        log.info(
+            "not writable by exiftool and left alone: " + ", ".join(f"{k} ({v})" for k, v in sorted(skipped.items()))
+        )
     if not apply:
         if matches:
             log.info("Nothing was written; add --apply to write these changes.")
@@ -70,6 +74,8 @@ def run(config: Config, roots: list, apply: bool, fields: str, prune: bool, verb
         if error:
             failed += 1
             log.error(f"{m.current.path}: {error}")
-    log.info(f"Wrote {len(matches) - failed} files, {failed} failed. Writing changed the files' dates: "
-             "run 'hist dates apply' for albums in the library.")
+    log.info(
+        f"Wrote {len(matches) - failed} files, {failed} failed. Writing changed the files' dates: "
+        "run 'hist dates apply' for albums in the library."
+    )
     return 1 if failed else 0

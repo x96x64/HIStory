@@ -3,6 +3,7 @@
 Nothing here touches the real Music library: HOME and HISTORY_HOME point into a temporary folder, and any attempt
 to run osascript fails the test.
 """
+
 import os
 import shutil
 import subprocess
@@ -23,6 +24,7 @@ def isolated(tmp_path, monkeypatch):
 
     def refuse(self, *args, **kwargs):
         raise AssertionError("a test tried to talk to the real Music app")
+
     monkeypatch.setattr(music_app.MusicApp, "osa", refuse)
     tags.similarity.cache_clear()
 
@@ -38,14 +40,29 @@ def make_cover(path: Path, color: str) -> Path:
 
 def make_flac(path: Path, seconds: float, freq: int, cover: Path | None, **vorbis) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    run("ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", f"sine=frequency={freq}:duration={seconds}",
-        "-ac", "2", "-ar", "44100", "-sample_fmt", "s16", path)
+    run(
+        "ffmpeg",
+        "-v",
+        "error",
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        f"sine=frequency={freq}:duration={seconds}",
+        "-ac",
+        "2",
+        "-ar",
+        "44100",
+        "-sample_fmt",
+        "s16",
+        path,
+    )
     cmd = ["metaflac", "--remove-all-tags"] + [f"--set-tag={k.upper()}={v}" for k, v in vorbis.items()]
     cmd += ["--set-tag=COMMENT=download junk", "--set-tag=ORGANIZATION=Some Label"]
     if cover:
         cmd.append(f"--import-picture-from=3||||{cover}")
     run(*cmd, path)
-    os.utime(path, (1, 1))                               # old enough to count as settled
+    os.utime(path, (1, 1))  # old enough to count as settled
     return path
 
 
@@ -54,10 +71,17 @@ def spec(album, artist, release, titles, discs=1):
     for i, title in enumerate(titles):
         disc = 1 if discs == 1 else (1 if i < (len(titles) + 1) // 2 else 2)
         number = i + 1 if disc == 1 else i + 1 - (len(titles) + 1) // 2
-        tracks.append({"disc": disc, "track": number, "title": title, "artist": artist, "composer": "A Writer",
-                       "genre": "Pop"})
-    return {"album": album, "album_artist": artist, "release": release, "discs": discs,
-            "copyright": "(P) Example Records", "tracks": tracks}
+        tracks.append(
+            {"disc": disc, "track": number, "title": title, "artist": artist, "composer": "A Writer", "genre": "Pop"}
+        )
+    return {
+        "album": album,
+        "album_artist": artist,
+        "release": release,
+        "discs": discs,
+        "copyright": "(P) Example Records",
+        "tracks": tracks,
+    }
 
 
 class Env:
@@ -71,22 +95,35 @@ class Env:
             p.mkdir(parents=True, exist_ok=True)
         (self.home / "config.toml").write_text(
             f'[paths]\ndownloads = ["{self.downloads}"]\nlibrary = "{self.library}"\nauto_add = "{self.auto_add}"\n'
-            f'evacuation = "{root / "evacuated"}"\n\n[convert]\nmin_free_gb = 0\n', encoding="utf-8")
+            f'evacuation = "{root / "evacuated"}"\n\n[convert]\nmin_free_gb = 0\n',
+            encoding="utf-8",
+        )
         self.cover = make_cover(root / "cover.jpg", "red")
 
     def config(self, **changes) -> config.Config:
         cfg = config.load(self.home)
         return config.Config(**{**cfg.__dict__, **changes}) if changes else cfg
 
-    def download(self, folder: str, album_tag: str, artist: str, titles: list, numbers=None, discs=None,
-                 base_freq=300) -> Path:
+    def download(
+        self, folder: str, album_tag: str, artist: str, titles: list, numbers=None, discs=None, base_freq=300
+    ) -> Path:
         """A download folder with store-style names and junk tags."""
         d = self.downloads / artist / folder
         for i, title in enumerate(titles):
             n = numbers[i] if numbers else i + 1
             extra = {"discnumber": discs[i]} if discs else {}
-            make_flac(d / f"{n:02d}-{title}_{9000 + i}.flac", 1 + 0.25 * i, base_freq + 40 * i, self.cover,
-                      title=title, artist=artist, album=album_tag, albumartist=artist, tracknumber=n, **extra)
+            make_flac(
+                d / f"{n:02d}-{title}_{9000 + i}.flac",
+                1 + 0.25 * i,
+                base_freq + 40 * i,
+                self.cover,
+                title=title,
+                artist=artist,
+                album=album_tag,
+                albumartist=artist,
+                tracknumber=n,
+                **extra,
+            )
         return d
 
     def add_album(self, the_spec: dict, flac_dir: Path) -> None:

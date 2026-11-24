@@ -1,4 +1,5 @@
 """Finding album folders and pairing their files with the catalog's tracks."""
+
 import os
 import re
 import time
@@ -21,10 +22,19 @@ def albums(tracks: list[Track]) -> list[dict]:
         groups[(t.album, t.artist)].append(t)
     out = []
     for key, members in groups.items():
-        dates = [d for d in (first(t.tags.get("ItemList:ContentCreateDate"))[:10].replace(":", "-")
-                             for t in members) if re.fullmatch(r"\d{4}-\d\d-\d\d", d)]
-        out.append({"key": key, "name": pick(members[0].tags, "album"), "tracks": members,
-                    "release": min(dates) if dates else "9999-12-31"})
+        dates = [
+            d
+            for d in (first(t.tags.get("ItemList:ContentCreateDate"))[:10].replace(":", "-") for t in members)
+            if re.fullmatch(r"\d{4}-\d\d-\d\d", d)
+        ]
+        out.append(
+            {
+                "key": key,
+                "name": pick(members[0].tags, "album"),
+                "tracks": members,
+                "release": min(dates) if dates else "9999-12-31",
+            }
+        )
     return sorted(out, key=lambda a: (a["release"], a["name"]))
 
 
@@ -33,8 +43,14 @@ def numbered(tracks: list[Track], indexes: list[int]) -> bool:
     return None not in numbers and len(set(numbers)) == len(numbers)
 
 
-def pair_tracks(saved: list[Track], current: list[Track], mode: str, threshold: float,
-                title_threshold: float, by_number: bool = True):
+def pair_tracks(
+    saved: list[Track],
+    current: list[Track],
+    mode: str,
+    threshold: float,
+    title_threshold: float,
+    by_number: bool = True,
+):
     """Assign each current file to at most one saved track.
 
     Returns (pairs, unmatched with reason, pairs made without a similar title). Two fallbacks exist, both only for
@@ -61,8 +77,7 @@ def pair_tracks(saved: list[Track], current: list[Track], mode: str, threshold: 
             if a < threshold or r < threshold:
                 continue
             album_known.update(cidx)
-            use_numbers = (by_number and len(cidx) == len(sidx)
-                           and numbered(current, cidx) and numbered(saved, sidx))
+            use_numbers = by_number and len(cidx) == len(sidx) and numbered(current, cidx) and numbered(saved, sidx)
             if by_number and len(cidx) == len(sidx):
                 groups.append((cidx, sidx))
             for ci in cidx:
@@ -98,8 +113,11 @@ def pair_tracks(saved: list[Track], current: list[Track], mode: str, threshold: 
     unmatched = []
     for ci, c in enumerate(current):
         if ci not in used_c:
-            reason = ("no track of a similar title in the matching catalog album" if ci in album_known
-                      else "no catalog album resembles this album and artist")
+            reason = (
+                "no track of a similar title in the matching catalog album"
+                if ci in album_known
+                else "no catalog album resembles this album and artist"
+            )
             unmatched.append((c, reason))
     return pairs, unmatched, number_only
 
@@ -133,7 +151,7 @@ def find_folders(root: Path) -> list[Folder]:
             continue
         try:
             probe = read_tracks([(str(root), str(files[0]))])
-        except OSError:          # the folder was moved or deleted while it was being scanned
+        except OSError:  # the folder was moved or deleted while it was being scanned
             continue
         if not probe:
             continue

@@ -3,6 +3,7 @@
 The first Ctrl-C (SIGINT) or a SIGTERM from 'hist stop' asks the command to stop after the album it is working on.
 While the command is only waiting (between albums, or for Enter), it stops at once. A second Ctrl-C stops at once.
 """
+
 import os
 import shutil
 import signal
@@ -59,5 +60,10 @@ def keep_awake() -> None:
     """Hold off idle sleep until this process exits (macOS caffeinate)."""
     tool = shutil.which("caffeinate")
     if tool:
-        subprocess.Popen([tool, "-i", "-w", str(os.getpid())], stdin=subprocess.DEVNULL,
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        subprocess.Popen(
+            [tool, "-i", "-w", str(os.getpid())],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )

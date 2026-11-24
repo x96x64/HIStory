@@ -4,6 +4,7 @@ Folders are moved first, then the entries are deleted: while a file exists, dele
 confirmation dialog; without the file it does not. Nothing is deleted from disk. Add the albums again from that
 folder in the Music app, one at a time, while 'hist watch' runs.
 """
+
 import os
 import time
 from pathlib import Path
@@ -62,9 +63,12 @@ def run(config: Config, music: MusicApp, only: str, dry_run: bool) -> int:
                 break
             time.sleep(2)
         else:
-            raise EvacuateError(f"the entries of {it['album']} are still listed; the Music app may be showing a "
-                                f"dialog. Answer it yourself. The files are safe in {dst}")
+            raise EvacuateError(
+                f"the entries of {it['album']} are still listed; the Music app may be showing a "
+                f"dialog. Answer it yourself. The files are safe in {dst}"
+            )
     if not dry_run:
-        log.info(f"Add the albums again from {config.evacuation} in the Music app, one at a time, "
-                 "while 'hist watch' runs.")
+        log.info(
+            f"Add the albums again from {config.evacuation} in the Music app, one at a time, while 'hist watch' runs."
+        )
     return 1 if failed else 0

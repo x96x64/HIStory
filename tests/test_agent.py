@@ -1,21 +1,31 @@
 """The commands for agents and scripts: --json output, catalog edit, cover, export, exact albums, dates set."""
+
 import hashlib
 import io
 import json
 
 import pytest
-
 from conftest import Env, needs_tools, spec
+
 from hist import catalog, retag, state
 from hist.cli import main
 
 
 def record(album, title, number, artist="A", total=2, disc="1 of 1"):
-    return {"file": f"{artist}/{album}/{number:02d} {title}.m4a",
-            "tags": {"ItemList:Title": title, "ItemList:Album": album, "ItemList:AlbumArtist": artist,
-                     "ItemList:Artist": artist, "ItemList:Genre": "Pop", "ItemList:TrackNumber": f"{number} of {total}",
-                     "ItemList:DiskNumber": disc, "ItemList:ContentCreateDate": "2000:01:01 00:00:00Z"},
-            "blobs": {}}
+    return {
+        "file": f"{artist}/{album}/{number:02d} {title}.m4a",
+        "tags": {
+            "ItemList:Title": title,
+            "ItemList:Album": album,
+            "ItemList:AlbumArtist": artist,
+            "ItemList:Artist": artist,
+            "ItemList:Genre": "Pop",
+            "ItemList:TrackNumber": f"{number} of {total}",
+            "ItemList:DiskNumber": disc,
+            "ItemList:ContentCreateDate": "2000:01:01 00:00:00Z",
+        },
+        "blobs": {},
+    }
 
 
 @pytest.fixture
@@ -44,18 +54,24 @@ def run_json(capsys, *argv):
 
 # ------------------------------------------------------------------ --json
 
+
 def test_catalog_list_json(home, capsys):
     code, out, _ = run_json(capsys, "catalog", "list", "--json")
     assert code == 0
     albums = json.loads(out)["albums"]
     assert [a["name"] for a in albums] == ["Best Of", "Best Of Live"]
-    assert albums[0] == {"name": "Best Of", "album_artist": "A", "release": "2000-01-01", "tracks": 2,
-                         "folder": "A/Best Of"}
+    assert albums[0] == {
+        "name": "Best Of",
+        "album_artist": "A",
+        "release": "2000-01-01",
+        "tracks": 2,
+        "folder": "A/Best Of",
+    }
 
 
 def test_catalog_show_json_and_exact(home, capsys):
     code, out, err = run_json(capsys, "catalog", "show", "best of", "--json", "--track", "2")
-    assert code == 0 and json.loads(out)["tracks"][0]["track"] == 2          # an exact match wins over "Best Of Live"
+    assert code == 0 and json.loads(out)["tracks"][0]["track"] == 2  # an exact match wins over "Best Of Live"
     code, out, _ = run_json(capsys, "catalog", "show", "Best Of", "--json")
     doc = json.loads(out)
     assert doc["album"] == "Best Of" and [t["track"] for t in doc["tracks"]] == [1, 2]
@@ -82,8 +98,7 @@ def test_dates_list_json_and_errors(home, tmp_path, capsys):
     (home / "dates.json").write_text(json.dumps({"entries": [{"kind": "artist", "path": "A", "date": "1990-01-01"}]}))
     code, out, _ = run_json(capsys, "dates", "list", "--json")
     assert code == 0
-    assert json.loads(out) == {"entries": [{"kind": "artist", "path": "A", "date": "1990-01-01",
-                                            "in_library": False}]}
+    assert json.loads(out) == {"entries": [{"kind": "artist", "path": "A", "date": "1990-01-01", "in_library": False}]}
     code, out, err = run_json(capsys, "dates", "check", "--json")
     assert code == 0 and json.loads(out)["ok"] is True or code == 1
     code, out, err = run_json(capsys, "dates", "apply", "--json")
@@ -101,6 +116,7 @@ def test_status_json(home, capsys):
 
 # ------------------------------------------------------------------- edit
 
+
 def edit_file(tmp_path, operations):
     path = tmp_path / "ops.json"
     path.write_text(json.dumps(operations))
@@ -108,9 +124,11 @@ def edit_file(tmp_path, operations):
 
 
 def test_edit_applies_everything_in_one_write_and_one_backup(home, tmp_path, capsys):
-    ops = [{"op": "set", "album": "Best Of", "track": 1, "tag": "Title", "value": "Uno"},
-           {"op": "set", "album": "Best Of", "tag": "Genre", "value": "Soul"},
-           {"op": "unset", "album": "Best Of", "disc": 1, "track": 2, "tag": "Genre"}]
+    ops = [
+        {"op": "set", "album": "Best Of", "track": 1, "tag": "Title", "value": "Uno"},
+        {"op": "set", "album": "Best Of", "tag": "Genre", "value": "Soul"},
+        {"op": "unset", "album": "Best Of", "disc": 1, "track": 2, "tag": "Genre"},
+    ]
     assert main(["catalog", "edit", edit_file(tmp_path, ops)]) == 0
     one, two, live = tracks(home)
     assert one["tags"]["ItemList:Title"] == "Uno" and one["tags"]["ItemList:Genre"] == "Soul"
@@ -140,12 +158,14 @@ def test_edit_reads_standard_input(home, monkeypatch, capsys):
 
 def test_edit_validates_all_operations_before_writing(home, tmp_path, capsys):
     before = (home / "tracks.json").read_text()
-    ops = [{"op": "set", "album": "Best Of", "tag": "Genre", "value": "Soul"},
-           {"op": "set", "album": "Nope", "tag": "Genre", "value": "x"},
-           {"op": "set", "album": "Best Of", "tag": "Comment", "value": "x"},
-           {"op": "unset", "album": "Best Of", "tag": "Title"},
-           {"op": "set", "album": "Best Of", "tag": "TrackNumber", "value": "three", "extra": 1},
-           {"op": "set", "album": "Best Of", "track": 9, "tag": "Genre", "value": "x"}]
+    ops = [
+        {"op": "set", "album": "Best Of", "tag": "Genre", "value": "Soul"},
+        {"op": "set", "album": "Nope", "tag": "Genre", "value": "x"},
+        {"op": "set", "album": "Best Of", "tag": "Comment", "value": "x"},
+        {"op": "unset", "album": "Best Of", "tag": "Title"},
+        {"op": "set", "album": "Best Of", "tag": "TrackNumber", "value": "three", "extra": 1},
+        {"op": "set", "album": "Best Of", "track": 9, "tag": "Genre", "value": "x"},
+    ]
     code, out, err = run_json(capsys, "catalog", "edit", edit_file(tmp_path, ops), "--json")
     assert code == 1
     message = json.loads(err)["error"]["message"]
@@ -195,6 +215,7 @@ def test_edit_retag_runs_retag_on_changed_album_folders(home, tmp_path, monkeypa
 
 # ------------------------------------------------------------------ cover
 
+
 def test_cover_stores_the_image_by_hash_and_sets_it_on_the_album(home, tmp_path, capsys):
     png = b"\x89PNG\r\n\x1a\n" + b"data"
     path = tmp_path / "c.png"
@@ -205,7 +226,7 @@ def test_cover_stores_the_image_by_hash_and_sets_it_on_the_album(home, tmp_path,
     assert one["blobs"] == two["blobs"] == {"ItemList:CoverArt": [digest]} and live["blobs"] == {}
     assert (home / "covers" / digest).read_bytes() == png
     assert backups(home)[0].endswith("-catalog-cover")
-    assert main(["catalog", "cover", "Best Of", str(path), "--exact"]) == 0       # nothing to change
+    assert main(["catalog", "cover", "Best Of", str(path), "--exact"]) == 0  # nothing to change
     assert len(backups(home)) == 1
     assert catalog.check(catalog_config(home)) == []
     path.write_bytes(b"text")
@@ -214,10 +235,12 @@ def test_cover_stores_the_image_by_hash_and_sets_it_on_the_album(home, tmp_path,
 
 def catalog_config(home):
     from hist import config
+
     return config.load(home)
 
 
 # ------------------------------------------------------------------ export
+
 
 def test_export_builds_a_spec_that_rebuilds_the_same_records(home, tmp_path, capsys):
     s = spec("Best Of", "A", "2000-01-01", ["One", "Two"])
@@ -264,6 +287,7 @@ def test_export_then_add_into_a_fresh_home_gives_identical_tags(tmp_path):
 
 # ------------------------------------------------------------------- dates
 
+
 def dates_doc(home):
     return json.loads((home / "dates.json").read_text())["entries"]
 
@@ -271,19 +295,27 @@ def dates_doc(home):
 def test_dates_set_infers_the_kind_and_keeps_backups(home, capsys):
     assert main(["dates", "set", "A/Best Of", "2001-02-03"]) == 0
     assert main(["dates", "set", "A", "1990-01-01"]) == 0
-    assert dates_doc(home) == [{"kind": "artist", "path": "A", "date": "1990-01-01"},
-                               {"kind": "album", "path": "A/Best Of", "date": "2001-02-03"}]
+    assert dates_doc(home) == [
+        {"kind": "artist", "path": "A", "date": "1990-01-01"},
+        {"kind": "album", "path": "A/Best Of", "date": "2001-02-03"},
+    ]
     assert main(["dates", "set", "A/Best Of", "2002-02-03", "--kind", "album"]) == 0
     assert dates_doc(home)[1]["date"] == "2002-02-03"
-    assert len([b for b in backups(home) if "-dates-set" in b]) == 3    # the repeat of a date writes nothing
+    assert len([b for b in backups(home) if "-dates-set" in b]) == 3  # the repeat of a date writes nothing
     assert main(["dates", "set", "A/Best Of", "2002-02-03"]) == 0
     assert len([b for b in backups(home) if "-dates-set" in b]) == 3
 
 
 def test_dates_set_validates_input(home, capsys):
-    for argv in (["A", "2001-2-3"], ["A", "2001-13-01"], ["A", "1969-12-31"], ["A/B/C", "2001-01-01"],
-                 ["../A", "2001-01-01"], ["A", "2001-01-01", "--kind", "album"], ["A/B", "2001-01-01", "--kind",
-                                                                                   "artist"]):
+    for argv in (
+        ["A", "2001-2-3"],
+        ["A", "2001-13-01"],
+        ["A", "1969-12-31"],
+        ["A/B/C", "2001-01-01"],
+        ["../A", "2001-01-01"],
+        ["A", "2001-01-01", "--kind", "album"],
+        ["A/B", "2001-01-01", "--kind", "artist"],
+    ):
         assert main(["dates", "set", *argv]) == 1, argv
     assert not (home / "dates.json").read_text().count("2001")
     assert main(["dates", "set", "A"]) == 2
@@ -301,15 +333,20 @@ def test_dates_unset(home, capsys):
 
 # ------------------------------------------------------------------- lock
 
+
 def test_writers_hold_the_catalog_lock(home, tmp_path, capsys):
     ops = edit_file(tmp_path, [{"op": "unset", "album": "Best Of", "tag": "Genre"}])
     held = state.Lock(home / "state", "catalog").acquire()
     try:
-        for argv in (["catalog", "set", "Best Of", "Genre", "x"], ["catalog", "edit", ops],
-                     ["catalog", "remove", "Best Of"], ["dates", "set", "A", "1990-01-01"]):
+        for argv in (
+            ["catalog", "set", "Best Of", "Genre", "x"],
+            ["catalog", "edit", ops],
+            ["catalog", "remove", "Best Of"],
+            ["dates", "set", "A", "1990-01-01"],
+        ):
             code, out, err = run_json(capsys, *argv, "--json") if argv[0] == "dates" else run_json(capsys, *argv)
             assert code == 1 and "catalog is already running" in err
-        assert main(["catalog", "edit", ops, "--dry-run"]) == 0                  # a dry run only reads
+        assert main(["catalog", "edit", ops, "--dry-run"]) == 0  # a dry run only reads
         assert main(["catalog", "list"]) == 0
     finally:
         held.release()
@@ -318,8 +355,10 @@ def test_writers_hold_the_catalog_lock(home, tmp_path, capsys):
 
 # ------------------------------------------------------------ discoverability and portability
 
+
 def test_agent_help_matches_agents_md(capsys):
     from hist import agent
+
     assert main(["agent-help"]) == 0
     text = capsys.readouterr().out
     assert text == agent.agents_md()
@@ -332,7 +371,9 @@ def test_agent_help_matches_agents_md(capsys):
 
 def test_repo_guides_are_generated():
     from pathlib import Path
+
     from hist import agent
+
     root = Path(__file__).resolve().parent.parent
     assert (root / "AGENTS.md").read_text() == agent.agents_md(repository=True)
     assert (root / "CLAUDE.md").read_text() == "@AGENTS.md\n"
@@ -357,7 +398,9 @@ def test_help_epilog_points_to_agents(capsys):
 
 def test_no_prompts_in_source():
     from pathlib import Path
+
     import hist
+
     for path in Path(hist.__file__).parent.glob("*.py"):
         assert "input(" not in path.read_text().replace("stdin", ""), path
 
@@ -366,6 +409,7 @@ def test_edit_stdin_terminal_fails(home, monkeypatch, capsys):
     class Tty(io.StringIO):
         def isatty(self):
             return True
+
     monkeypatch.setattr("sys.stdin", Tty(""))
     code, out, err = run_json(capsys, "catalog", "edit", "--json")
     assert code == 2 and json.loads(err)["error"]["code"] == "usage"
@@ -409,6 +453,7 @@ def test_music_commands_fail_fast_off_macos(home, monkeypatch, capsys):
 
 def test_missing_tool_names_install_command(monkeypatch):
     from hist import proc
+
     monkeypatch.setattr("shutil.which", lambda name, *a, **k: None)
     with pytest.raises(proc.ToolError) as error:
         proc.which("ffmpeg")

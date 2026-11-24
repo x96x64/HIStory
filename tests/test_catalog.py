@@ -2,8 +2,8 @@ import hashlib
 import json
 
 import pytest
-
 from conftest import make_cover, needs_tools, spec
+
 from hist import catalog, state
 
 
@@ -12,11 +12,20 @@ def write_records(env, records):
 
 
 def record(title, number):
-    return {"file": f"A/B/{number:02d} {title}.m4a",
-            "tags": {"ItemList:Title": title, "ItemList:Album": "Best Of", "ItemList:AlbumArtist": "A",
-                     "ItemList:Artist": "A", "ItemList:Genre": "Pop", "ItemList:TrackNumber": f"{number} of 2",
-                     "ItemList:DiskNumber": "1 of 1", "ItemList:ContentCreateDate": "2000:01:01 00:00:00Z"},
-            "blobs": {}}
+    return {
+        "file": f"A/B/{number:02d} {title}.m4a",
+        "tags": {
+            "ItemList:Title": title,
+            "ItemList:Album": "Best Of",
+            "ItemList:AlbumArtist": "A",
+            "ItemList:Artist": "A",
+            "ItemList:Genre": "Pop",
+            "ItemList:TrackNumber": f"{number} of 2",
+            "ItemList:DiskNumber": "1 of 1",
+            "ItemList:ContentCreateDate": "2000:01:01 00:00:00Z",
+        },
+        "blobs": {},
+    }
 
 
 def test_set_and_unset_keep_backups_and_guard_the_policy(env):
@@ -91,11 +100,18 @@ def test_remove_album_cleans_every_file_of_the_catalog_folder(env):
     (env.home / "covers").mkdir()
     (env.home / "covers" / (A_COVER)).write_bytes(b"a")
     (env.home / "covers" / (B_COVER)).write_bytes(b"b")
-    env.home.joinpath("dates.json").write_text(json.dumps({"entries": [
-        {"kind": "artist", "path": "A", "date": "1990-01-01"},
-        {"kind": "album", "path": "A/B", "date": "2000-01-01"},
-        {"kind": "artist", "path": "C", "date": "1991-01-01"},
-        {"kind": "album", "path": "C/Other", "date": "2001-01-01"}]}))
+    env.home.joinpath("dates.json").write_text(
+        json.dumps(
+            {
+                "entries": [
+                    {"kind": "artist", "path": "A", "date": "1990-01-01"},
+                    {"kind": "album", "path": "A/B", "date": "2000-01-01"},
+                    {"kind": "artist", "path": "C", "date": "1991-01-01"},
+                    {"kind": "album", "path": "C/Other", "date": "2001-01-01"},
+                ]
+            }
+        )
+    )
     cfg = env.config()
     state.added(cfg.state).add("Best Of", tracks=2)
 
@@ -116,10 +132,17 @@ def test_remove_album_cleans_every_file_of_the_catalog_folder(env):
 
 def test_remove_album_keeps_an_artist_entry_still_in_use(env):
     write_records(env, [record("One", 1), record("Two", 2)])
-    env.home.joinpath("dates.json").write_text(json.dumps({"entries": [
-        {"kind": "artist", "path": "A", "date": "1990-01-01"},
-        {"kind": "album", "path": "A/B", "date": "2000-01-01"},
-        {"kind": "album", "path": "A/Later", "date": "2005-01-01"}]}))
+    env.home.joinpath("dates.json").write_text(
+        json.dumps(
+            {
+                "entries": [
+                    {"kind": "artist", "path": "A", "date": "1990-01-01"},
+                    {"kind": "album", "path": "A/B", "date": "2000-01-01"},
+                    {"kind": "album", "path": "A/Later", "date": "2005-01-01"},
+                ]
+            }
+        )
+    )
     removed = catalog.remove_album(env.config(), "best")
     assert removed["dates"] == ["A/B"]
 
@@ -136,8 +159,14 @@ def test_read_spec_takes_a_relative_cover_from_the_spec_folder(tmp_path):
 def test_old_history_and_snapshots_move_to_backups(tmp_path):
     history, snapshots = tmp_path / "history", tmp_path / "snapshots"
     history.mkdir()
-    for name in ("tracks.json.20261110-190547", "dates.json.20261110-190547", "tracks.json.20261110-190547-2",
-                 "tracks.json.20261110-210045", f"{A_COVER}.20261110-190547", "notes.txt"):
+    for name in (
+        "tracks.json.20261110-190547",
+        "dates.json.20261110-190547",
+        "tracks.json.20261110-190547-2",
+        "tracks.json.20261110-210045",
+        f"{A_COVER}.20261110-190547",
+        "notes.txt",
+    ):
         (history / name).write_text(name)
     (snapshots / "retag-20261110-195110" / "covers").mkdir(parents=True)
     (snapshots / "retag-20261110-195110" / "tracks.json").write_text("{}")
@@ -145,9 +174,14 @@ def test_old_history_and_snapshots_move_to_backups(tmp_path):
     assert state.migrate_backups(tmp_path) == 4
     backups = tmp_path / "backups"
     found = {str(p.relative_to(backups)) for p in backups.rglob("*") if p.is_file()}
-    assert found == {"20261110-190547-catalog/tracks.json", "20261110-190547-catalog/dates.json",
-                     f"20261110-190547-catalog/covers/{A_COVER}", "20261110-190547-catalog-2/tracks.json",
-                     "20261110-210045-catalog/tracks.json", "20261110-195110-retag/tracks.json"}
+    assert found == {
+        "20261110-190547-catalog/tracks.json",
+        "20261110-190547-catalog/dates.json",
+        f"20261110-190547-catalog/covers/{A_COVER}",
+        "20261110-190547-catalog-2/tracks.json",
+        "20261110-210045-catalog/tracks.json",
+        "20261110-195110-retag/tracks.json",
+    }
     assert (backups / "20261110-190547-catalog-2" / "tracks.json").read_text() == "tracks.json.20261110-190547-2"
     assert [p.name for p in history.iterdir()] == ["notes.txt"]
     assert not snapshots.exists()
@@ -160,6 +194,6 @@ def test_a_backup_folder_is_made_only_when_a_file_is_kept(tmp_path):
     assert not (tmp_path / "backups").exists()
     (tmp_path / "tracks.json").write_text("{}")
     other = state.Backup(tmp_path, "catalog-import")
-    other.base = backup.base                             # as if both ran in the same second
+    other.base = backup.base  # as if both ran in the same second
     first, second = backup.keep(tmp_path / "tracks.json"), other.keep(tmp_path / "tracks.json")
     assert first.parent.name.endswith("-catalog-import") and second.parent.name == first.parent.name + "-2"

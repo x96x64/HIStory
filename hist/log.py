@@ -3,6 +3,7 @@
 Information goes to standard output, warnings and errors to standard error as 'hist: warning: ...' and
 'hist: error: ...'. Long-running commands prefix their lines with the time and also append them to a log file.
 """
+
 import json
 import logging
 import sys

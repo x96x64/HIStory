@@ -9,6 +9,7 @@ Each operation is an object:
 album by its exact name. Every operation is checked before anything is changed, and the whole batch is written
 once, or not at all.
 """
+
 import copy
 import json
 import re
@@ -27,7 +28,9 @@ def load_operations(text: str) -> list[dict]:
     try:
         operations = json.loads(text)
     except json.JSONDecodeError as error:
-        raise CatalogError(f"the operations are not valid JSON: {error}; see 'hist agent-help' for the format") from None
+        raise CatalogError(
+            f"the operations are not valid JSON: {error}; see 'hist agent-help' for the format"
+        ) from None
     if not isinstance(operations, list):
         raise CatalogError("the operations must be a JSON array of objects; see 'hist agent-help' for the format")
     return operations
@@ -39,7 +42,7 @@ def check_operation(op: object) -> list[str]:
         return ["must be an object"]
     problems = [f"unknown key '{key}'" for key in sorted(set(op) - KEYS)]
     if op.get("op") not in ("set", "unset"):
-        problems.append("'op' must be \"set\" or \"unset\"")
+        problems.append('\'op\' must be "set" or "unset"')
     if not isinstance(op.get("album"), str) or not op.get("album"):
         problems.append("'album' must be a non-empty string")
     if not isinstance(op.get("tag"), str) or not op.get("tag"):
@@ -91,17 +94,24 @@ def plan(records: list[dict], operations: list) -> list[tuple]:
 
 def track_label(record: dict) -> dict:
     disc, number = catalog.record_number(record)
-    return {"file": record["file"], "album": record["tags"]["ItemList:Album"], "disc": disc, "track": number,
-            "title": record["tags"].get("ItemList:Title", "")}
+    return {
+        "file": record["file"],
+        "album": record["tags"]["ItemList:Album"],
+        "disc": disc,
+        "track": number,
+        "title": record["tags"].get("ItemList:Title", ""),
+    }
 
 
 def changes(before: list[dict], after: list[dict]) -> list[dict]:
     """Per changed track: its label and the tags that differ, as {"tag", "before", "after"} (None = absent)."""
     out = []
-    for old, new in zip(before, after):
-        diff = [{"tag": tag, "before": old["tags"].get(tag), "after": new["tags"].get(tag)}
-                for tag in sorted(set(old["tags"]) | set(new["tags"]))
-                if old["tags"].get(tag) != new["tags"].get(tag)]
+    for old, new in zip(before, after, strict=False):
+        diff = [
+            {"tag": tag, "before": old["tags"].get(tag), "after": new["tags"].get(tag)}
+            for tag in sorted(set(old["tags"]) | set(new["tags"]))
+            if old["tags"].get(tag) != new["tags"].get(tag)
+        ]
         if diff:
             out.append({**track_label(old), "changes": diff})
     return out
@@ -143,8 +153,14 @@ def run(config: Config, operations: list, dry_run: bool, exact: bool = False) ->
     album folders, relative to the library, of the changed tracks.
     """
     old, new, found = compute(config, operations, exact)
-    report = {"dry_run": dry_run, "operations": len(operations), "tracks_changed": len(found), "changes": found,
-              "folders": sorted({c["file"].rsplit("/", 1)[0] for c in found}), "backup": None}
+    report = {
+        "dry_run": dry_run,
+        "operations": len(operations),
+        "tracks_changed": len(found),
+        "changes": found,
+        "folders": sorted({c["file"].rsplit("/", 1)[0] for c in found}),
+        "backup": None,
+    }
     if found and not dry_run:
         backup = state.Backup(config.state, "catalog-edit")
         catalog.write_records(config, new, backup)

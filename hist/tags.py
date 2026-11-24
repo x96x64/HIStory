@@ -3,6 +3,7 @@
 Tag names carry their exiftool group, for example ItemList:Title. Binary values (cover art) are kept as the
 SHA-256 of their bytes.
 """
+
 import base64
 import hashlib
 import json
@@ -11,7 +12,7 @@ import re
 import unicodedata
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
-from functools import lru_cache
+from functools import cache, lru_cache
 from pathlib import Path
 
 from hist import proc
@@ -51,7 +52,7 @@ def norm(text) -> str:
     return re.sub(r"^(the|a|an) ", "", text)
 
 
-@lru_cache(maxsize=None)
+@cache
 def similarity(a: str, b: str, mode: str) -> float:
     if not a or not b:
         return 0.0
@@ -127,9 +128,20 @@ def read_tracks(found, blob_dir: Path | None = None) -> list[Track]:
     root_of = dict((path, root) for root, path in found)
     paths = [path for _, path in found]
     for i in range(0, len(paths), CHUNK):
-        chunk = paths[i:i + CHUNK]
-        done = proc.run([exiftool(), "-q", "-j", "-b", "-G1", "-charset", "filename=UTF8",
-                         *(f"-{g}:all" for g in TAG_GROUPS), *chunk])
+        chunk = paths[i : i + CHUNK]
+        done = proc.run(
+            [
+                exiftool(),
+                "-q",
+                "-j",
+                "-b",
+                "-G1",
+                "-charset",
+                "filename=UTF8",
+                *(f"-{g}:all" for g in TAG_GROUPS),
+                *chunk,
+            ]
+        )
         if done.stderr.strip():
             log.warning(done.stderr.decode("utf-8", "replace").strip())
         text = done.stdout.decode("utf-8")
@@ -174,9 +186,25 @@ def metadata_atoms_of(paths: list) -> dict:
     """{path: names of every metadata atom}, reading CHUNK files per exiftool run."""
     found = {}
     for i in range(0, len(paths), CHUNK):
-        out = proc.run([exiftool(), "-q", "-a", "-u", "-G1", "-s3", "-j", "-charset", "filename=UTF8",
-                        "-ItemList:all", "-UserData:all", "-Keys:all", "-XMP:all", *paths[i:i + CHUNK]],
-                       text=True).stdout
+        out = proc.run(
+            [
+                exiftool(),
+                "-q",
+                "-a",
+                "-u",
+                "-G1",
+                "-s3",
+                "-j",
+                "-charset",
+                "filename=UTF8",
+                "-ItemList:all",
+                "-UserData:all",
+                "-Keys:all",
+                "-XMP:all",
+                *paths[i : i + CHUNK],
+            ],
+            text=True,
+        ).stdout
         for item in json.loads(out) if out.strip() else []:
             path = item.pop("SourceFile")
             found[path] = set(item)
@@ -234,7 +262,7 @@ def write_match(m: Match, blob_dir: Path) -> str | None:
     # Tags are written with their group (ItemList:Album): without a group exiftool writes XMP instead.
     cmd = [exiftool(), "-q", "-overwrite_original", "-P", "-charset", "filename=UTF8"]
     for tag, value in m.sets.items():
-        for v in (value if isinstance(value, list) else [value]):
+        for v in value if isinstance(value, list) else [value]:
             cmd.append(f"-{tag}={v}")
     for tag, hashes in m.blob_sets.items():
         for h in hashes:

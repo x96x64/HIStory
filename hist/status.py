@@ -1,4 +1,5 @@
 """One line per album, oldest release first: how far it has come (reads only)."""
+
 import collections
 from pathlib import Path
 
@@ -32,8 +33,16 @@ def run(config: Config, music: MusicApp | None, as_json: bool = False) -> int:
                 label = why
         counts[label.split(",")[0]] += 1
         in_music = listed.get(name, 0) if listed is not None else None
-        rows.append({"order": order, "release": album["release"], "name": name, "status": label,
-                     "tracks": len(album["tracks"]), "music_tracks": in_music})
+        rows.append(
+            {
+                "order": order,
+                "release": album["release"],
+                "name": name,
+                "status": label,
+                "tracks": len(album["tracks"]),
+                "music_tracks": in_music,
+            }
+        )
     if as_json:
         emit_json({"albums": rows, "summary": dict(counts.most_common()), "total": len(all_albums)})
         return 0

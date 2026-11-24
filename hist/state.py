@@ -1,4 +1,5 @@
 """Small files under <home>/state: progress records, locks, and backups."""
+
 import fcntl
 import json
 import os
@@ -149,7 +150,7 @@ class Lock:
 
     def acquire(self) -> "Lock":
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        handle = open(self.path, "a+")
+        handle = open(self.path, "a+")  # noqa: SIM115 - kept open as the lock
         try:
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:

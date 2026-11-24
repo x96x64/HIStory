@@ -5,6 +5,7 @@ have stopped changing, its tags are compared with the catalog, the dates of its 
 set from dates.json, and the album is recorded as added. An album that leaves the library is forgotten, so it is
 checked and dated again when it comes back.
 """
+
 import time
 from pathlib import Path
 
@@ -34,8 +35,11 @@ def signature(files: list) -> list:
 
 def differing(album: dict, found: list) -> list:
     by_number = {s.number: s for s in album["tracks"]}
-    return [Path(t.path).name for t in found
-            if t.number not in by_number or t.tags != by_number[t.number].tags or t.blobs != by_number[t.number].blobs]
+    return [
+        Path(t.path).name
+        for t in found
+        if t.number not in by_number or t.tags != by_number[t.number].tags or t.blobs != by_number[t.number].blobs
+    ]
 
 
 class Follower:
@@ -43,7 +47,7 @@ class Follower:
 
     def __init__(self, config: Config):
         self.config = config
-        self.seen = {}          # 'Artist/Album' -> (signature, time it last changed)
+        self.seen = {}  # 'Artist/Album' -> (signature, time it last changed)
         self.told = set()
 
     def look(self) -> int:
@@ -57,10 +61,10 @@ class Follower:
         def folder_of(name: str, info: dict) -> str | None:
             if info.get("folder"):
                 return info["folder"]
-            album = by_name.get(name)                         # records of earlier builds hold no folder
+            album = by_name.get(name)  # records of earlier builds hold no folder
             return str(Path(album["tracks"][0].path).parent.relative_to(cfg.library)) if album else None
 
-        for name, info in list(recorded.items()):            # an album that left the library is forgotten
+        for name, info in list(recorded.items()):  # an album that left the library is forgotten
             folder = folder_of(name, info)
             if folder and folder not in folders:
                 progress.remove(name)
@@ -87,12 +91,14 @@ class Follower:
                     self.told.add(rel)
                 continue
             if len(found) < len(album["tracks"]):
-                continue                                      # still being added
+                continue  # still being added
             bad = differing(album, found)
             if bad or len(found) != len(album["tracks"]):
                 if rel not in self.told:
-                    log.warning(f"{album['name']}: {len(bad) or len(found)} files in the library differ from the "
-                                f"catalog (e.g. {bad[0] if bad else 'track count'}); dates were not set")
+                    log.warning(
+                        f"{album['name']}: {len(bad) or len(found)} files in the library differ from the "
+                        f"catalog (e.g. {bad[0] if bad else 'track count'}); dates were not set"
+                    )
                     self.told.add(rel)
                 continue
             outcome = dates.apply_album(rel, dates.entries(cfg.dates_file), cfg.library)

@@ -7,8 +7,18 @@ from hist.tags import Track
 
 
 def track(title, album="Album", artist="Artist", number="1 of 2", disc="1 of 1"):
-    return Track("/x/" + title, "/x", {"ItemList:Title": title, "ItemList:Album": album, "ItemList:AlbumArtist": artist,
-                                      "ItemList:TrackNumber": number, "ItemList:DiskNumber": disc}, {})
+    return Track(
+        "/x/" + title,
+        "/x",
+        {
+            "ItemList:Title": title,
+            "ItemList:Album": album,
+            "ItemList:AlbumArtist": artist,
+            "ItemList:TrackNumber": number,
+            "ItemList:DiskNumber": disc,
+        },
+        {},
+    )
 
 
 def test_norm_folds_case_width_accents_punctuation_and_article():
@@ -23,8 +33,11 @@ def test_similarity_substring_mode_accepts_a_contained_name():
 
 def test_pairing_by_title_number_and_elimination():
     saved = [track("Song One", number="1 of 3"), track("Song Two", number="2 of 3"), track("Third", number="3 of 3")]
-    current = [track("song one (remastered)", number="1 of 3"), track("Translated", number="2 of 3"),
-               track("Other", number="9 of 3")]
+    current = [
+        track("song one (remastered)", number="1 of 3"),
+        track("Translated", number="2 of 3"),
+        track("Other", number="9 of 3"),
+    ]
     pairs, unmatched, number_only = matching.pair_tracks(saved, current, "substring", 0.9, 0.85)
     assert sorted(pairs) == [(0, 0), (1, 1), (2, 2)]
     assert not unmatched
@@ -46,17 +59,30 @@ def test_file_names_follow_disc_and_track(tmp_path):
     two = tmp_path / "other_654321.m4a"
     one.write_bytes(b"")
     two.write_bytes(b"")
-    a = Track(str(one), str(tmp_path), {"ItemList:Title": "A/B: C?", "ItemList:TrackNumber": "3 of 9",
-                                        "ItemList:DiskNumber": "1 of 1"}, {})
-    b = Track(str(two), str(tmp_path), {"ItemList:Title": "Song", "ItemList:TrackNumber": "4 of 9",
-                                        "ItemList:DiskNumber": "2 of 2"}, {})
+    a = Track(
+        str(one),
+        str(tmp_path),
+        {"ItemList:Title": "A/B: C?", "ItemList:TrackNumber": "3 of 9", "ItemList:DiskNumber": "1 of 1"},
+        {},
+    )
+    b = Track(
+        str(two),
+        str(tmp_path),
+        {"ItemList:Title": "Song", "ItemList:TrackNumber": "4 of 9", "ItemList:DiskNumber": "2 of 2"},
+        {},
+    )
     tags.clean_file_names([a, b])
     assert sorted(p.name for p in tmp_path.iterdir()) == ["03 A_B_ C_.m4a", "2-04 Song.m4a"]
 
 
 def test_a_quit_music_app_gives_a_clear_error(monkeypatch):
-    monkeypatch.undo()                                   # use the real osa, with osascript itself replaced
-    monkeypatch.setattr(proc, "run", lambda *a, **k: subprocess.CompletedProcess(
-        a, 1, "", "114:172: execution error: Music got an error: Connection is invalid. (-609)"))
+    monkeypatch.undo()  # use the real osa, with osascript itself replaced
+    monkeypatch.setattr(
+        proc,
+        "run",
+        lambda *a, **k: subprocess.CompletedProcess(
+            a, 1, "", "114:172: execution error: Music got an error: Connection is invalid. (-609)"
+        ),
+    )
     with pytest.raises(music_app.MusicError, match="was quit"):
         music_app.MusicApp().tracks("Album")

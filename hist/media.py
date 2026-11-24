@@ -1,4 +1,5 @@
 """Audio work with ffmpeg, ffprobe, flac and exiftool."""
+
 import hashlib
 import json
 import os
@@ -24,26 +25,31 @@ def alac_command(source: Path, out: Path) -> list:
 
 
 def duration(path: Path) -> float:
-    out = proc.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", path],
-                   text=True).stdout.strip()
+    out = proc.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", path], text=True
+    ).stdout.strip()
     return float(out) if out else -1.0
 
 
 def pcm_md5(path: Path) -> str:
     """Hash of the decoded audio (32-bit PCM), so a FLAC and its ALAC copy can be compared sample by sample."""
-    return proc.run(["ffmpeg", "-v", "error", "-nostdin", "-i", path, "-map", "0:a:0", "-c:a", "pcm_s32le",
-                     "-f", "md5", "-"], text=True).stdout.strip()
+    return proc.run(
+        ["ffmpeg", "-v", "error", "-nostdin", "-i", path, "-map", "0:a:0", "-c:a", "pcm_s32le", "-f", "md5", "-"],
+        text=True,
+    ).stdout.strip()
 
 
 def audio_md5(path: Path) -> str:
-    return proc.run(["ffmpeg", "-v", "error", "-nostdin", "-i", path, "-map", "0:a", "-f", "md5", "-"],
-                    text=True).stdout.strip()
+    return proc.run(
+        ["ffmpeg", "-v", "error", "-nostdin", "-i", path, "-map", "0:a", "-f", "md5", "-"], text=True
+    ).stdout.strip()
 
 
 def audio_packets(path: Path) -> str:
     """Hash of the encoded audio packets, unchanged by a container rebuild."""
-    return proc.run(["ffmpeg", "-v", "error", "-nostdin", "-i", path, "-map", "0:a", "-c", "copy", "-f", "md5", "-"],
-                    text=True).stdout.strip()
+    return proc.run(
+        ["ffmpeg", "-v", "error", "-nostdin", "-i", path, "-map", "0:a", "-c", "copy", "-f", "md5", "-"], text=True
+    ).stdout.strip()
 
 
 def decodes_cleanly(path: Path) -> bool:
@@ -67,8 +73,20 @@ def store_protected(paths: list) -> set:
     """The paths, of those given, whose files still carry store purchase data (CHUNK files per exiftool run)."""
     found = set()
     for i in range(0, len(paths), tags.CHUNK):
-        out = proc.run([tags.exiftool(), "-q", "-j", "-a", "-u", "-charset", "filename=UTF8", "-SchemeType",
-                        *paths[i:i + tags.CHUNK]], text=True).stdout
+        out = proc.run(
+            [
+                tags.exiftool(),
+                "-q",
+                "-j",
+                "-a",
+                "-u",
+                "-charset",
+                "filename=UTF8",
+                "-SchemeType",
+                *paths[i : i + tags.CHUNK],
+            ],
+            text=True,
+        ).stdout
         found |= {item["SourceFile"] for item in (json.loads(out) if out.strip() else []) if item.get("SchemeType")}
     return found
 
@@ -77,8 +95,10 @@ def rebuild_container(path: Path) -> None:
     """Copy the streams into a fresh MP4 container without re-encoding; store purchase data is dropped."""
     tmp = path.with_name(path.stem + ".rebuild.m4a")
     before = audio_md5(path)
-    done = proc.run(["ffmpeg", "-nostdin", "-y", "-v", "error", "-i", path, "-map", "0", "-c", "copy",
-                     "-map_metadata", "0", tmp], text=True)
+    done = proc.run(
+        ["ffmpeg", "-nostdin", "-y", "-v", "error", "-i", path, "-map", "0", "-c", "copy", "-map_metadata", "0", tmp],
+        text=True,
+    )
     if done.returncode != 0 or not tmp.exists():
         tmp.unlink(missing_ok=True)
         raise MediaError("rebuilding the container failed: " + done.stderr.strip())
@@ -93,8 +113,18 @@ def strip_and_tag(saved: Track, path: Path, covers: Path) -> None:
 
     The audio is not touched: no re-encoding and no conversion, only the metadata atoms change.
     """
-    done = proc.run([tags.exiftool(), "-q", "-overwrite_original", "-P", "-charset", "filename=UTF8",
-                     *(f"-{g}:all=" for g in tags.STRIP_GROUPS), path])
+    done = proc.run(
+        [
+            tags.exiftool(),
+            "-q",
+            "-overwrite_original",
+            "-P",
+            "-charset",
+            "filename=UTF8",
+            *(f"-{g}:all=" for g in tags.STRIP_GROUPS),
+            path,
+        ]
+    )
     if done.returncode != 0:
         raise MediaError("stripping failed: " + done.stderr.decode("utf-8", "replace").strip())
     empty = Track(str(path), str(path.parent), {}, {})
@@ -102,8 +132,9 @@ def strip_and_tag(saved: Track, path: Path, covers: Path) -> None:
     error = tags.write_match(Match(empty, saved, sets, blob_sets, deletes), covers)
     if error:
         raise MediaError("writing the catalog's tags failed: " + error)
-    left = proc.run([tags.exiftool(), "-q", "-j", "-a", "-u", "-G1", "-b",
-                     *(f"-{g}:all" for g in tags.STRIP_GROUPS), path]).stdout.decode("utf-8")
+    left = proc.run(
+        [tags.exiftool(), "-q", "-j", "-a", "-u", "-G1", "-b", *(f"-{g}:all" for g in tags.STRIP_GROUPS), path]
+    ).stdout.decode("utf-8")
     found = {k for k in json.loads(left)[0] if k != "SourceFile"} if left.strip() else set()
     extra = found - set(saved.tags) - set(saved.blobs)
     if extra:

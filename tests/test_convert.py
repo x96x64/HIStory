@@ -1,11 +1,13 @@
 from conftest import needs_tools, spec
+
 from hist import catalog, convert, media, state, tags
 
 pytestmark = needs_tools
 
 
-def setup_album(env, album="Hits", folder="Hits (Remastered)", titles=("Uno", "Dos", "Tres"),
-                catalog_titles=("One", "Two", "Three")):
+def setup_album(
+    env, album="Hits", folder="Hits (Remastered)", titles=("Uno", "Dos", "Tres"), catalog_titles=("One", "Two", "Three")
+):
     d = env.download(folder, folder, "Band", list(titles))
     env.add_album(spec(album, "Band", "2001-01-01", list(catalog_titles)), d)
     return d
@@ -58,7 +60,7 @@ def test_a_folder_of_a_longer_album_name_is_not_taken(env):
     longer = env.download("The Best Hits", "The Best Hits", "Band", ["C", "D"], base_freq=700)
     env.add_album(spec("The Best Hits", "Band", "2005-01-01", ["C", "D"]), longer)
     for p in short.glob("*.flac"):
-        p.unlink()                               # only the longer album's download is present
+        p.unlink()  # only the longer album's download is present
     result = convert.run_once(env.config(), convert.Options(only="Hits"))
     assert state.converted(env.config().state).names() == {"The Best Hits"}
     assert result.converted == 1

@@ -1,4 +1,5 @@
 """Read-only verification of M4A files against the catalog."""
+
 import collections
 import os
 import re
@@ -25,9 +26,13 @@ def run(config: Config, roots: list, allow_missing: bool, decode: bool, music: M
     missing = [k for k in ref if k not in set(keys)]
     dups = [k for k, v in collections.Counter(keys).items() if v > 1]
     unknown = [k for k in set(keys) if k not in ref]
-    diff = [t for t, k in zip(found, keys) if k in ref and (t.tags != ref[k].tags or t.blobs != ref[k].blobs)]
-    log.info(f"catalog tracks not found: {len(missing)}, found twice: {len(dups)}, not in the catalog: {len(unknown)}, "
-             f"tags or cover differ: {len(diff)}")
+    diff = [
+        t for t, k in zip(found, keys, strict=False) if k in ref and (t.tags != ref[k].tags or t.blobs != ref[k].blobs)
+    ]
+    log.info(
+        f"catalog tracks not found: {len(missing)}, found twice: {len(dups)}, not in the catalog: {len(unknown)}, "
+        f"tags or cover differ: {len(diff)}"
+    )
     for t in diff[:10]:
         log.info(f"  differs: {t.path}")
     if (missing and not allow_missing) or dups or unknown or diff:
@@ -39,8 +44,10 @@ def run(config: Config, roots: list, allow_missing: bool, decode: bool, music: M
     nodisc = sum(1 for t in found if "ItemList:DiskNumber" not in t.tags)
     store = len(media.store_protected([t.path for t in found]))
     ids = [os.path.basename(t.path) for t in found if re.search(r"_\d{5,}\.m4a$", t.path)]
-    log.info(f"Comment: {comment}, Encoder: {encoder}, without DiskNumber: {nodisc}, "
-             f"store purchase data: {store}, names with a download id: {len(ids)}")
+    log.info(
+        f"Comment: {comment}, Encoder: {encoder}, without DiskNumber: {nodisc}, "
+        f"store purchase data: {store}, names with a download id: {len(ids)}"
+    )
     if comment or encoder or nodisc or store or ids:
         problems.append("a file breaks the tag policy")
 
@@ -54,15 +61,21 @@ def run(config: Config, roots: list, allow_missing: bool, decode: bool, music: M
         problems.append("unexpected metadata atoms")
 
     if decode:
-        bad = [os.path.basename(t.path) for t in found
-               if os.path.exists(t.path) and not media.decodes_cleanly(Path(t.path))]
+        bad = [
+            os.path.basename(t.path)
+            for t in found
+            if os.path.exists(t.path) and not media.decodes_cleanly(Path(t.path))
+        ]
         log.info(f"files that do not decode cleanly: {bad or 'none'}")
         if bad:
             problems.append("files do not decode cleanly")
 
     per = collections.Counter(tags.pick(t.tags, "album") for t in found)
-    short = {a["name"]: (per.get(a["name"], 0), len(a["tracks"])) for a in all_albums
-             if per.get(a["name"], 0) != len(a["tracks"])}
+    short = {
+        a["name"]: (per.get(a["name"], 0), len(a["tracks"]))
+        for a in all_albums
+        if per.get(a["name"], 0) != len(a["tracks"])
+    }
     log.info(f"albums whose track count differs: {short or 'none'}")
     if short and not allow_missing:
         problems.append("track counts differ")
@@ -80,7 +93,11 @@ def run(config: Config, roots: list, allow_missing: bool, decode: bool, music: M
         listed = [a for a in all_albums if a["name"] in by]
         wrong = [a["name"] for a in listed if len(by[a["name"]]) != len(a["tracks"])]
         log.info(f"albums in the Music app with a wrong track count: {wrong or 'none'}")
-        late = [(x["name"], y["name"]) for x, y in zip(listed, listed[1:]) if max(by[x["name"]]) > min(by[y["name"]])]
+        late = [
+            (x["name"], y["name"])
+            for x, y in zip(listed, listed[1:], strict=False)
+            if max(by[x["name"]]) > min(by[y["name"]])
+        ]
         log.info("albums were added in release order: " + ("yes" if not late else f"no, {late}"))
         if wrong or late:
             problems.append("the Music app's state differs from the catalog")

@@ -4,6 +4,7 @@ An album entry sets the date on the album folder, its sub-folders and every .m4a
 it on the artist folder only. The commands are 'touch -t' and 'SetFile -d -m', run without a shell.
 SetFile cannot set dates before 1970, so such entries are refused.
 """
+
 import datetime
 import json
 import os
@@ -42,7 +43,7 @@ def items(entry: dict, root: Path) -> list:
     for d, subdirs, files in os.walk(folder):
         subdirs.sort()
         found += [Path(d) / s for s in subdirs]
-        found += [Path(d) / f for f in sorted(files) if f.endswith(MEDIA)]     # case-sensitive, like find -name
+        found += [Path(d) / f for f in sorted(files) if f.endswith(MEDIA)]  # case-sensitive, like find -name
     return found
 
 
@@ -53,8 +54,12 @@ def commands(entry: dict, root: Path) -> list:
     every = [str(p) for p in items(entry, root)]
     if entry["kind"] == "artist":
         return [["touch", "-t", stamp, str(folder)], ["SetFile", "-d", shown, "-m", shown, str(folder)]]
-    return [["touch", "-t", stamp, *every], ["touch", "-t", stamp, str(folder)],
-            ["SetFile", "-d", shown, "-m", shown, *every], ["SetFile", "-d", shown, "-m", shown, str(folder)]]
+    return [
+        ["touch", "-t", stamp, *every],
+        ["touch", "-t", stamp, str(folder)],
+        ["SetFile", "-d", shown, "-m", shown, *every],
+        ["SetFile", "-d", shown, "-m", shown, str(folder)],
+    ]
 
 
 def apply(entry: dict, root: Path) -> None:
@@ -85,8 +90,11 @@ def select(all_entries: list, only: str) -> list:
     text = only.casefold()
     albums = [e for e in all_entries if e["kind"] == "album" and text in e["path"].casefold()]
     artists = {e["path"].split("/")[0] for e in albums}
-    return [e for e in all_entries if e in albums or
-            (e["kind"] == "artist" and (e["path"] in artists or text in e["path"].casefold()))]
+    return [
+        e
+        for e in all_entries
+        if e in albums or (e["kind"] == "artist" and (e["path"] in artists or text in e["path"].casefold()))
+    ]
 
 
 def for_album(rel: str, all_entries: list):
@@ -98,16 +106,20 @@ def for_album(rel: str, all_entries: list):
 
 def shell_line(entry: dict, root: Path) -> str:
     """The same work as one shell command line."""
+
     def q(text: str) -> str:
         return "'" + text.replace("'", "'\\''") + "'"
+
     folder = q(str(root / entry["path"]))
     stamp = entry["date"].strftime("%Y%m%d%H%M.00")
     shown = '"' + entry["date"].strftime("%m/%d/%Y %H:%M:%S") + '"'
     if entry["kind"] == "artist":
         return f"[ -d {folder} ] && touch -t {stamp} {folder} && SetFile -d {shown} -m {shown} {folder}"
     match = r'\( -type d -o -name "*.m4a" -o -name "*.m4v" \)'
-    return (f"find {folder} {match} -exec touch -t {stamp} {{}} + && touch -t {stamp} {folder} && "
-            f"find {folder} {match} -exec SetFile -d {shown} -m {shown} {{}} + && SetFile -d {shown} -m {shown} {folder}")
+    return (
+        f"find {folder} {match} -exec touch -t {stamp} {{}} + && touch -t {stamp} {folder} && "
+        f"find {folder} {match} -exec SetFile -d {shown} -m {shown} {{}} + && SetFile -d {shown} -m {shown} {folder}"
+    )
 
 
 def apply_album(rel: str, all_entries: list, root: Path) -> str:
@@ -125,6 +137,7 @@ def apply_album(rel: str, all_entries: list, root: Path) -> str:
 
 
 # ----------------------------------------------------------- editing dates.json
+
 
 def parse_date(text: str) -> str:
     """text as a valid YYYY-MM-DD date from 1970 on, else DatesError."""
@@ -146,8 +159,9 @@ def kind_of(path: str, kind: str | None) -> str:
         raise DatesError(f"'{path}' must be 'Artist' or 'Artist/Album', relative to the library")
     inferred = "artist" if len(parts) == 1 else "album"
     if kind is not None and kind != inferred:
-        raise DatesError(f"'{path}' has {len(parts)} part{'s' * (len(parts) > 1)}, so it is an {inferred} "
-                         f"entry, not {kind}")
+        raise DatesError(
+            f"'{path}' has {len(parts)} part{'s' * (len(parts) > 1)}, so it is an {inferred} entry, not {kind}"
+        )
     return inferred
 
 
@@ -167,8 +181,14 @@ def set_entry(path: Path, entry_path: str, date: str, kind: str | None, backup: 
         found["date"] = date
     else:
         new = {"kind": kind, "path": entry_path, "date": date}
-        first_album = next((i for i, e in enumerate(doc["entries"]) if kind == "artist" and e.get("kind") == "album"
-                            and e.get("path", "").split("/")[0] == entry_path), len(doc["entries"]))
+        first_album = next(
+            (
+                i
+                for i, e in enumerate(doc["entries"])
+                if kind == "artist" and e.get("kind") == "album" and e.get("path", "").split("/")[0] == entry_path
+            ),
+            len(doc["entries"]),
+        )
         doc["entries"].insert(first_album, new)
     if previous != date:
         backup.keep(path)

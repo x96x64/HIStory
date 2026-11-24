@@ -4,6 +4,7 @@ The catalog home is, in this order: the --home option, the HISTORY_HOME environm
 ~/Library/Application Support/HIStory. Paths in config.toml may start with '~'; relative paths are taken
 relative to the home.
 """
+
 import os
 import tomllib
 from dataclasses import dataclass, field

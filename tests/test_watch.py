@@ -7,8 +7,8 @@ import subprocess
 import threading
 
 import pytest
-
 from conftest import needs_tools, spec
+
 from hist import convert, library, runtime, state, watch
 
 pytestmark = needs_tools
@@ -29,7 +29,7 @@ def test_watch_stops_when_asked(env):
     env.add_album(spec("First", "Band", "2000-01-01", ["A", "B"]), first)
     later = env.download("Later", "Later", "Band", ["x", "y"])
     env.add_album(spec("Later", "Band", "2002-01-01", ["X", "Y"]), later)
-    next(later.glob("*.flac")).unlink()                   # one of two tracks: never complete
+    next(later.glob("*.flac")).unlink()  # one of two tracks: never complete
     stopper = runtime.Stopper()
     threading.Timer(1.5, lambda: setattr(stopper, "signum", signal.SIGTERM)).start()
     with pytest.raises(runtime.Stopped) as stopped:
@@ -42,10 +42,17 @@ def prepared(env):
     for i, name in enumerate(("Alpha", "Beta")):
         d = env.download(name, name, "Band", ["s", "t"], base_freq=300 + 200 * i)
         env.add_album(spec(name, "Band", f"200{i}-0{i + 1}-01", ["S", "T"]), d)
-    (env.home / "dates.json").write_text(json.dumps({"entries": [
-        {"kind": "artist", "path": "Band", "date": "1990-01-01"},
-        {"kind": "album", "path": "Band/Alpha", "date": "2000-01-01"},
-        {"kind": "album", "path": "Band/Beta", "date": "2001-02-01"}]}))
+    (env.home / "dates.json").write_text(
+        json.dumps(
+            {
+                "entries": [
+                    {"kind": "artist", "path": "Band", "date": "1990-01-01"},
+                    {"kind": "album", "path": "Band/Alpha", "date": "2000-01-01"},
+                    {"kind": "album", "path": "Band/Beta", "date": "2001-02-01"},
+                ]
+            }
+        )
+    )
     convert.run_once(env.config(), convert.Options())
 
 
@@ -68,8 +75,8 @@ def test_albums_you_add_are_checked_dated_and_forgotten_when_removed(env, quick)
     follower = library.Follower(cfg)
     assert follower.missing() == ["Alpha", "Beta"]
     add_in_music(env, "Alpha")
-    follower.look()                       # first look: the folder is new
-    assert follower.look() == 1           # second look: unchanged, so it is checked and dated
+    follower.look()  # first look: the folder is new
+    assert follower.look() == 1  # second look: unchanged, so it is checked and dated
     assert follower.missing() == ["Beta"]
     when = datetime.datetime(2000, 1, 1).timestamp()
     assert os.stat(cfg.library / "Band" / "Alpha" / "01 S.m4a").st_mtime == when
@@ -109,7 +116,7 @@ def test_watch_ends_at_once_when_everything_is_already_in_the_library(env, quick
     prepared(env)
     add_in_music(env, "Alpha")
     add_in_music(env, "Beta")
-    (env.home / "state" / "converted.json").unlink()      # converted elsewhere; the downloads are gone
+    (env.home / "state" / "converted.json").unlink()  # converted elsewhere; the downloads are gone
     for f in env.downloads.rglob("*.m4a"):
         f.unlink()
     assert watch.run(env.config(), convert.Options(), runtime.Stopper(), interval=0.1) == 0
