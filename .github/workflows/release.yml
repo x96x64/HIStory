@@ -81,14 +81,11 @@ jobs:
         with:
           name: dist
           path: dist/
-      - name: Extract the changelog section
-        run: |
-          version="${GITHUB_REF_NAME#v}"
-          awk -v v="$version" '
-            /^## \[/ { if (found) exit; if (index($0, "## [" v "]") == 1) { found = 1; next } }
-            found { print }
-          ' CHANGELOG.md > notes.md
-          test -s notes.md || { echo "No changelog section for $version" >&2; exit 1; }
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Write the release notes
+        run: python scripts/release_notes.py "$GITHUB_REF_NAME" > notes.md
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
