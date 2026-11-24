@@ -147,3 +147,7 @@ the album folder, its sub-folders and every `.m4a` and `.m4v` file inside; an `a
 folder only, and is applied before each of its albums. `path` is relative to the library and uses the folder names
 the Music app gives (`:` becomes `_`). Dates before 1970 cannot be set. Entries for folders that are not in the
 library are skipped, so the file may list albums that are added later.
+
+Edit the file with `hist dates set PATH DATE` and `hist dates unset PATH` (each keeps a backup), not by hand.
+The same applies to `tracks.json`: change it with `hist catalog edit`, `set`, `unset` and `cover`. `hist catalog
+export ALBUM` writes an album back as a spec file.

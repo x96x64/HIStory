@@ -39,19 +39,28 @@ commands write only to the catalog folder and the download folders.
 
 ### hist init [--from DIR] [--force]
 
-Create the catalog folder with an example `config.toml`, an empty `tracks.json` and `dates.json`. With `--from`,
+Create the catalog folder with a complete, commented `config.toml` (no questions are asked), `AGENTS.md` and
+`CLAUDE.md` (existing files are never overwritten), an empty `tracks.json` and `dates.json`. With `--from`,
 copy an existing catalog (`config.toml`, `tracks.json`, `covers/`, `dates.json`) into it and check it.
 A catalog that already holds tracks is replaced only with `--force`.
 
-### hist doctor
+### hist agent-help [--json]
+
+Print the guide for AI agents and scripts: the same text as `AGENTS.md` in the catalog folder, as Markdown or
+(with `--json`) as JSON. It works without a catalog.
+
+### hist doctor [--json]
 
 Check Python, the external tools, the configuration, the catalog, the dates file, the folders, free disk space,
-and whether `watch` or `convert` is running. Exits 1 if something required is missing.
+and whether `watch` or `convert` is running. Exits 1 if something required is missing. A missing tool is named
+with the command that installs it, for example `brew install ffmpeg`. With `--json`, print
+`{"ok", "checks", "info"}`.
 
-### hist status [--music]
+### hist status [--music] [--json]
 
 Print one line per album, oldest release first: in the library, converted and ready to add, ready to convert, or
-what it is waiting for. With `--music`, also count each album's tracks in the Music app.
+what it is waiting for. With `--music`, also count each album's tracks in the Music app (macOS only). With
+`--json`, print `{"total", "albums": [...]}`.
 
 ### hist convert [--only TEXT] [--keep-flac] [--source DIR]... [--dry-run]
 
@@ -102,7 +111,7 @@ Lines are also written to `state/logs/watch.log`.
 
 Send SIGTERM to a running `watch` or `convert`. Each finishes the album it is working on, then exits.
 
-### hist dates list | apply | check | script [--only TEXT] [--dry-run]
+### hist dates list | apply | check | script | set | unset [--only TEXT] [--dry-run] [--json]
 
 Folder and file dates in the library, from `dates.json`.
 
@@ -118,6 +127,16 @@ With `--dry-run`, show what would be set.
 
 `script`
 : Print the same work as shell commands, without running them.
+
+`set PATH DATE [--kind album|artist]`
+: Add or change the entry for PATH (`Artist` or `Artist/Album`) in `dates.json`; DATE is `YYYY-MM-DD`. The kind
+is inferred from PATH. The previous file is kept in `state/backups/`. Nothing is applied to the library.
+
+`unset PATH`
+: Remove the entries of PATH. Exits 1 when there is none.
+
+`--json` works with `list`, `check`, `set` and `unset`. `apply` and `check` need macOS (`SetFile`) when there are
+entries.
 
 `--only TEXT` selects entries whose path contains TEXT; the artist entry of each selected album comes along.
 
@@ -144,11 +163,29 @@ file name, every file decodes cleanly, and every album complete. Exits 1 on any 
 
 ### hist catalog \<action\>
 
-`list`
+Every action that takes ALBUM accepts `--exact`: ALBUM must then be the full album name. Without it, ALBUM is text
+contained in the name; text that matches several albums is an error that lists them. Every writer takes the
+"catalog" lock, so a second writer fails at once (error code `locked`).
+
+`list [--json]`
 : The albums, oldest release first, with track counts.
 
-`show ALBUM [--disc N] [--track N]`
-: The tracks of an album, or every tag of one track. ALBUM is text contained in the album name.
+`show ALBUM [--disc N] [--track N] [--json]`
+: The tracks of an album, or every tag of one track.
+
+`edit [FILE|-] [--dry-run] [--retag] [--exact] [--json]`
+: Apply a JSON array of `set` and `unset` operations (keys `op`, `album`, `disc`, `track`, `tag`, `value`,
+`exact`) read from FILE or standard input. Every operation is checked first; one error rejects the batch. The
+result is written once, with one backup. `--dry-run` prints the changes only. `--retag` then runs `hist retag
+--apply` on the changed albums. With `--json` the report includes `"next"`, the commands to run afterwards.
+It fails at once if standard input is a terminal.
+
+`cover ALBUM IMAGE`
+: Make a JPEG or PNG the cover of every track of an album.
+
+`export ALBUM [-o FILE]`
+: Write the album as a spec file that `catalog add` accepts (covers are written next to FILE). Tags a spec cannot
+express are reported as warnings.
 
 `set ALBUM TAG VALUE [--disc N] [--track N]`
 : Set a tag on every track of an album, or on one track. TAG may omit the group: `Genre` means `ItemList:Genre`.
@@ -168,7 +205,7 @@ see docs/catalog-format.md.
 deleted file is kept in one folder of `state/backups/` first. The library folder and the Music app are not touched. With
 `--dry-run`, show what would be removed.
 
-`check`
+`check [--json]`
 : Check the catalog files for consistency; exits 1 on any problem.
 
 `import FOLDER`
@@ -196,6 +233,20 @@ one at a time, while `hist watch` runs.
 List the Music app's entries of the album named in `[store]`, and say which still carry store purchase data.
 With `--delete` (**writes to Music**), delete those entries, but only if the cleaned copy made by
 `hist convert` equals the catalog and has the same audio as every entry to be deleted.
+
+## JSON OUTPUT
+
+With `--json`, `catalog list`, `show`, `edit`, `check`, `dates list`, `check`, `set`, `unset`, `status`, `doctor`
+and `verify` print one JSON document on standard output. An error is printed on standard error as
+`{"error": {"message": ..., "code": ...}}`, with the same exit status as in text mode. Codes: `usage`, `config`,
+`catalog`, `dates`, `locked`, `tool`, `platform`, `error`.
+
+## PLATFORMS
+
+Commands that use the Music app, `osascript` or `SetFile` (`status --music`, `verify --music`, `refresh`,
+`evacuate`, `store-entries`, `watch`, `dates apply` and `dates check`) fail at once on other systems with a message
+saying so. The catalog commands work everywhere. Without a catalog, every command except `init`, `agent-help`
+and `doctor` says to run `hist init` (or to pass `--home` or set `HISTORY_HOME`).
 
 ## EXIT STATUS
 

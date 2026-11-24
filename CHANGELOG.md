@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `--json` output for `catalog list`, `show`, `edit` and `check`, `dates list` and `check`, `status`, `doctor` and
+  `verify`. With `--json` an error is printed as `{"error": {"message", "code"}}` on standard error; the exit codes
+  are unchanged.
+- `hist catalog edit [FILE|-] [--dry-run] [--retag]`: a batch of `set` and `unset` operations, checked first and
+  written once, with one backup.
+- `hist catalog cover`, `hist catalog export`, `hist dates set` and `hist dates unset`.
+- `--exact` for the commands that take an album name.
+- `hist agent-help [--json]`, an `AGENTS.md` and `CLAUDE.md` in the repository, and the same two files written into
+  the catalog folder by `hist init`.
+- Every writer of `tracks.json` and `dates.json` takes the "catalog" lock.
+
+### Changed
+
+- Errors say what to run next; `catalog set` and `edit` print the `hist retag` command to run.
+- `hist init` writes a complete, commented `config.toml`.
+- Commands that need macOS (Music app, `osascript`, `SetFile`) fail at once on other systems; a missing external
+  tool is reported with the command that installs it. Without a catalog, commands say to run `hist init`.
+
 ## [2.3.0] - 2026-11-10
 
 ### Changed
