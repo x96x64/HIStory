@@ -54,7 +54,7 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
 
   publish-npm:
-    needs: test
+    needs: publish-pypi
     runs-on: ubuntu-latest
     permissions:
       contents: read
