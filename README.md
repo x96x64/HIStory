@@ -137,7 +137,7 @@ The catalog folder is chosen in this order: the `--home DIR` option, the `HISTOR
 
 | Key | Meaning |
 | --- | --- |
-| `[paths] downloads` | List of folders that receive downloaded albums, one sub-folder per album |
+| `[paths] downloads` | List of folders that receive downloaded albums, one sub-folder per album; empty to detect the usual folders of download services |
 | `[paths] library` | The Music app's media folder (default `~/Music/Music/Media.localized/Music`) |
 | `[paths] auto_add` | The "Automatically Add to Music" folder of the Music app |
 | `[paths] evacuation` | Where `hist evacuate` moves album folders out of the library |
@@ -160,7 +160,7 @@ The tool itself needs only the Python standard library; the tests use pytest. Af
 
 ## Versioning and Changelog
 
-The project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The current version is 2.5.0; `hist --version` prints the installed one. The same version is published on PyPI as `his-story` and on npm as `@x96x64/his-story`.
+The project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The current version is 2.5.1; `hist --version` prints the installed one. The same version is published on PyPI as `his-story` and on npm as `@x96x64/his-story`.
 
 Every notable change is recorded in [CHANGELOG.md](CHANGELOG.md), in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Read it before upgrading, because changes to the catalog format or to command behavior are listed there.
 
