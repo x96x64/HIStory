@@ -1,8 +1,8 @@
 # Catalog format
 
-The catalog folder (see `hist --help` for where it is) holds the exact metadata that every track must end up
-with. Edit it with `hist catalog` where possible; the files are plain JSON and TOML and can also be edited by hand
-or with the help of an assistant. Run `hist catalog check` after editing.
+The catalog folder is chosen by `--home DIR`, else `$HISTORY_HOME`, else `~/Library/Application Support/HIStory`. It holds the exact metadata that every track must end up
+with. Edit it with `hist catalog` and `hist dates`; the files are plain JSON and TOML, and `config.toml` may be edited
+by hand. Run `hist catalog check` after any edit.
 
 ```
 config.toml
@@ -11,6 +11,13 @@ covers/<sha256>
 dates.json
 state/                 created by hist; not part of the catalog
 ```
+
+`format` in `tracks.json` is the file format version; `hist` reads only the version it knows (currently 2) and
+otherwise reports "unsupported format". Files are UTF-8 JSON; `hist` writes them atomically.
+
+The `state/` folder holds `converted.json` and `added.json` (each maps an album name to `{"time": "YYYY-MM-DDTHH:MM:SS", ...}`),
+`backups/`, `staging/`, `logs/` and `*.lock` files. It can be deleted safely when nothing is running; `hist` then
+treats every album as not yet converted and not yet added.
 
 ## config.toml
 
@@ -36,7 +43,10 @@ disc = 1                               # the disc in the catalog
 offset = 88                            # downloaded track number minus catalog track number
 ```
 
-Paths may start with `~`. A relative path is taken relative to the catalog folder.
+Paths may start with `~`. A relative path is taken relative to the catalog folder. A missing `config.toml` gives
+the defaults shown above, with no download folders. `[store]` needs both `album` and `file`, and
+`[match.renumber."Album"]` needs both `disc` and `offset`; otherwise `hist` reports a configuration error (exit
+status 2). `hist init` writes a complete, commented `config.toml`.
 
 Download folders are matched to catalog albums by album and artist name (one may contain the other) and by the
 number of files. When a folder's album name contains the name of a different album, the album whose name fits
@@ -94,7 +104,7 @@ Rules:
 - Text inside `()` belongs to the title; a second qualifier after one in `()` goes in `[]`, for example
   `Song (feat. Guest) [Live]`.
 
-Every change made by `hist catalog set`, `unset`, `add` or `remove` keeps the previous files in a new folder
+Every change made by `hist catalog set`, `unset`, `edit`, `cover`, `add`, `remove` or `import` keeps the previous files in a new folder
 `state/backups/<time>-<command>/`, for example `state/backups/20261110-210045-catalog-remove/`.
 
 ## Spec files
@@ -148,6 +158,6 @@ folder only, and is applied before each of its albums. `path` is relative to the
 the Music app gives (`:` becomes `_`). Dates before 1970 cannot be set. Entries for folders that are not in the
 library are skipped, so the file may list albums that are added later.
 
-Edit the file with `hist dates set PATH DATE` and `hist dates unset PATH` (each keeps a backup), not by hand.
-The same applies to `tracks.json`: change it with `hist catalog edit`, `set`, `unset` and `cover`. `hist catalog
+Edit the file with `hist dates set PATH DATE [--kind album|artist]` and `hist dates unset PATH` (each keeps a
+backup), not by hand. `DATE` is `YYYY-MM-DD`. The same applies to `tracks.json`: change it with `hist catalog edit`, `set`, `unset` and `cover`. `hist catalog
 export ALBUM` writes an album back as a spec file.

@@ -25,6 +25,7 @@ commands write only to the catalog folder and the download folders.
 
 `--home DIR`
 : The catalog folder. Default: `$HISTORY_HOME`, else `~/Library/Application Support/HIStory`.
+Give it before the command name.
 
 `-q`, `--quiet`
 : Print warnings and errors only.
@@ -163,6 +164,8 @@ file name, every file decodes cleanly, and every album complete. Exits 1 on any 
 
 ### hist catalog \<action\>
 
+Actions: `list`, `show`, `set`, `unset`, `edit`, `cover`, `export`, `add`, `remove`, `check`, `import`.
+
 Every action that takes ALBUM accepts `--exact`: ALBUM must then be the full album name. Without it, ALBUM is text
 contained in the name; text that matches several albums is an error that lists them. Every writer takes the
 "catalog" lock, so a second writer fails at once (error code `locked`).
@@ -170,35 +173,35 @@ contained in the name; text that matches several albums is an error that lists t
 `list [--json]`
 : The albums, oldest release first, with track counts.
 
-`show ALBUM [--disc N] [--track N] [--json]`
+`show ALBUM [--disc N] [--track N] [--exact] [--json]`
 : The tracks of an album, or every tag of one track.
 
 `edit [FILE|-] [--dry-run] [--retag] [--exact] [--json]`
 : Apply a JSON array of `set` and `unset` operations (keys `op`, `album`, `disc`, `track`, `tag`, `value`,
 `exact`) read from FILE or standard input. Every operation is checked first; one error rejects the batch. The
 result is written once, with one backup. `--dry-run` prints the changes only. `--retag` then runs `hist retag
---apply` on the changed albums. With `--json` the report includes `"next"`, the commands to run afterwards.
+--apply` on the changed albums; it cannot be combined with `--json` or `--dry-run`. With `--json` the report includes `"next"`, the commands to run afterwards.
 It fails at once if standard input is a terminal.
 
-`cover ALBUM IMAGE`
+`cover ALBUM IMAGE [--exact]`
 : Make a JPEG or PNG the cover of every track of an album.
 
-`export ALBUM [-o FILE]`
+`export ALBUM [-o FILE | --output FILE] [--exact]`
 : Write the album as a spec file that `catalog add` accepts (covers are written next to FILE). Tags a spec cannot
 express are reported as warnings.
 
-`set ALBUM TAG VALUE [--disc N] [--track N]`
+`set ALBUM TAG VALUE [--disc N] [--track N] [--exact]`
 : Set a tag on every track of an album, or on one track. TAG may omit the group: `Genre` means `ItemList:Genre`.
 The previous `tracks.json` is kept in `state/backups/`.
 
-`unset ALBUM TAG [--disc N] [--track N]`
+`unset ALBUM TAG [--disc N] [--track N] [--exact]`
 : Remove a tag. Title, Album, AlbumArtist, Artist, TrackNumber and DiskNumber cannot be removed.
 
 `add SPEC --from DIR [--dry-run]`
 : Add an album from a spec file and the folder of its downloaded FLAC files. The spec file can be kept anywhere;
 see docs/catalog-format.md.
 
-`remove ALBUM [--dry-run]`
+`remove ALBUM [--dry-run] [--exact]`
 : Remove an album from the catalog folder after you have removed it from the Music app: its tracks, its
 `dates.json` entries (and its artist's entry when no other album of that artist is left), its records in
 `state/added.json` and `state/converted.json`, and covers that nothing else uses. Every changed or
@@ -209,7 +212,9 @@ deleted file is kept in one folder of `state/backups/` first. The library folder
 : Check the catalog files for consistency; exits 1 on any problem.
 
 `import FOLDER`
-: Start an empty catalog from the tags of an existing library folder, dropping Comment and Encoder.
+: Start an empty catalog from the tags of the M4A files under an existing library folder, dropping Comment and
+Encoder. It fails when the catalog already holds tracks ("the catalog in HOME already holds tracks") or when the
+folder holds no M4A files.
 
 ### hist retag PATH... [--apply] [--fields LIST] [--prune] [--list-unmatched]
 
@@ -217,7 +222,7 @@ Match the M4A files under each PATH to the catalog and show the tags that differ
 current tags to `state/backups/`, then write the catalog's tags. Writing changes the files' dates, so run
 `hist dates apply` afterwards for albums in the library, and `hist refresh` for albums in the Music app.
 
-### hist refresh ALBUM
+### hist refresh ALBUM [--exact]
 
 **Writes to Music.** Make the Music app re-read the files of an album (tags, cover and file names). No entry is
 added or removed.
@@ -234,12 +239,37 @@ List the Music app's entries of the album named in `[store]`, and say which stil
 With `--delete` (**writes to Music**), delete those entries, but only if the cleaned copy made by
 `hist convert` equals the catalog and has the same audio as every entry to be deleted.
 
+## CATALOG EDIT OPERATIONS
+
+`hist catalog edit` reads a JSON array of objects. Unknown keys are rejected.
+
+| Key | Type | Meaning |
+| --- | --- | --- |
+| `op` | string, required | `"set"` or `"unset"` |
+| `album` | string, required | Text contained in the album name (the exact name with `"exact": true`) |
+| `tag` | string, required | Tag name, with or without its group: `Genre` or `ItemList:Genre` |
+| `value` | string | The new value; required and non-empty for `set`; not allowed for `unset` |
+| `disc` | integer, optional | Limit the operation to one disc |
+| `track` | integer, optional | Limit the operation to one track number |
+| `exact` | boolean, optional | `album` is the exact album name |
+
+Without `disc` and `track`, an operation covers the whole album. Title, Album, AlbumArtist, Artist, TrackNumber
+and DiskNumber cannot be removed; Comment and Encoder are never stored.
+
+```json
+[
+ {"op": "set", "album": "Album Name", "disc": 1, "track": 3, "tag": "Title", "value": "New Title"},
+ {"op": "set", "album": "Album Name", "tag": "Genre", "value": "Soul"},
+ {"op": "unset", "album": "Album Name", "tag": "Composer"}
+]
+```
+
 ## JSON OUTPUT
 
 With `--json`, `catalog list`, `show`, `edit`, `check`, `dates list`, `check`, `set`, `unset`, `status`, `doctor`
 and `verify` print one JSON document on standard output. An error is printed on standard error as
 `{"error": {"message": ..., "code": ...}}`, with the same exit status as in text mode. Codes: `usage`, `config`,
-`catalog`, `dates`, `locked`, `tool`, `platform`, `error`.
+`catalog`, `dates`, `locked`, `tool`, `platform`, `error`. `agent-help --json` prints the guide as JSON.
 
 ## PLATFORMS
 
@@ -271,6 +301,9 @@ replaced by the next run.
 
 ## FILES
 
+`<home>` is the catalog folder. `state/converted.json` and `state/added.json` map album names to records with a
+`time`.
+
 ```
 <home>/config.toml        settings
 <home>/tracks.json        the catalog's tags
@@ -291,11 +324,11 @@ Fix a genre and bring an album in the library in line:
 
 ```sh
 hist catalog set "Album Name" Genre Soul
-hist retag "~/Music/Music/Media.localized/Music/Artist/Album Name" --apply
+hist retag "<library>/Artist/Album Name" --apply
 hist refresh "Album Name"
 hist dates apply --only "Album Name"
 ```
 
 ## SEE ALSO
 
-docs/catalog-format.md, docs/troubleshooting.md
+README.md, docs/catalog-format.md, docs/troubleshooting.md, AGENTS.md
