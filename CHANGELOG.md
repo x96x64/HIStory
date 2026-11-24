@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-11-24
+
 ### Added
 
 - `hist catalog undo [--dry-run] [--json]` restores `tracks.json` and `dates.json` (and covers that are missing)
@@ -19,7 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Starting `hist` is faster because the package version is read only when it is needed (`hist --version`).
 - `config.toml` is validated strictly: an unknown section or key, a value of the wrong type (such as a text for
   `downloads` or `min_free_gb`) and a negative `min_free_gb` are configuration errors (exit status 2, code
-  `config`). Earlier versions iterated a text `downloads` character by character.
+  `config`). Earlier versions iterated a text `downloads` character by character. To migrate, run `hist doctor`
+  after the upgrade and remove or correct each key it names in `config.toml`.
 - The `publish-npm` job of the release workflow waits for `publish-pypi`, so that npm never receives a version that
   failed on PyPI.
 - The conversion decodes each new M4A file once instead of twice; the second check ran after a rename that does not
@@ -330,7 +333,8 @@ This release contains breaking changes; see the migration steps below.
 - Safe stopping (first Ctrl-C or `hist stop` finishes the current album), locks against concurrent runs, and
   log files under `state/logs/`.
 
-[Unreleased]: https://github.com/x96x64/HIStory/compare/v2.4.3...HEAD
+[Unreleased]: https://github.com/x96x64/HIStory/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/x96x64/HIStory/compare/v2.4.3...v2.5.0
 [2.4.3]: https://github.com/x96x64/HIStory/compare/v2.4.2...v2.4.3
 [2.4.2]: https://github.com/x96x64/HIStory/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/x96x64/HIStory/compare/v2.4.0...v2.4.1
