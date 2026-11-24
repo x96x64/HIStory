@@ -61,3 +61,38 @@ def test_apply_sets_folders_and_media_files_only(tmp_path):
     for name in ("02 b.M4A", "notes.txt"):
         assert os.stat(album / name).st_mtime != when
     assert os.stat(tmp_path / "Band").st_mtime == datetime.datetime(1976, 11, 5).timestamp()
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "{not json",
+        "[]",
+        '{"entries": 3}',
+        '{"entries": [3]}',
+        '{"entries": [{"kind": "album", "path": "A/B"}]}',
+        '{"entries": [{"kind": "album", "path": "A/B", "date": "1977-13-45"}]}',
+        '{"entries": [{"kind": "album", "path": "A/B", "date": "1969-01-01"}]}',
+        '{"entries": [{"kind": "album", "path": "A/B", "date": 1977}]}',
+    ],
+)
+def test_malformed_dates_json_is_a_dates_error(tmp_path, text):
+    path = tmp_path / "dates.json"
+    path.write_text(text, encoding="utf-8")
+    with pytest.raises(dates.DatesError):
+        dates.entries(path)
+
+
+def test_entries_reads_valid_file(tmp_path):
+    path = tmp_path / "dates.json"
+    path.write_text('{"entries": [{"kind": "artist", "path": "A", "date": "1977-01-02"}]}', encoding="utf-8")
+    assert dates.entries(path)[0]["date"] == datetime.datetime(1977, 1, 2)
+
+
+def test_commands_touch_each_item_once(tmp_path):
+    (tmp_path / "A" / "B").mkdir(parents=True)
+    (tmp_path / "A" / "B" / "1.m4a").write_text("x")
+    cmds = dates.commands(entry("album", "A/B", "1977-01-02"), tmp_path)
+    assert [c[0] for c in cmds] == ["touch", "SetFile"]
+    assert cmds[0][3:] == [str(tmp_path / "A" / "B"), str(tmp_path / "A" / "B" / "1.m4a")]
+    assert dates.commands(entry("artist", "A", "1977-01-02"), tmp_path)[0][3:] == [str(tmp_path / "A")]

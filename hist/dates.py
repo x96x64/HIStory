@@ -25,12 +25,20 @@ def entries(path: Path) -> list:
     """[{'kind': 'album'|'artist', 'path': 'Artist/Album', 'date': datetime}] in the order they are applied."""
     if not path.exists():
         return []
-    doc = json.loads(path.read_text(encoding="utf-8"))
+    doc = read_document(path)
     out = []
-    for e in doc.get("entries", []):
+    for i, e in enumerate(doc["entries"], 1):
+        if not isinstance(e, dict):
+            raise DatesError(f"{path.name}: entry {i} is not an object")
         if e.get("kind") not in ("album", "artist"):
             raise DatesError(f"{path.name}: unknown kind {e.get('kind')!r} for {e.get('path')}")
-        out.append({**e, "date": datetime.datetime.strptime(e["date"], "%Y-%m-%d")})
+        if not isinstance(e.get("path"), str) or not isinstance(e.get("date"), str):
+            raise DatesError(f"{path.name}: entry {i} needs a text 'path' and a text 'date'")
+        try:
+            day = parse_date(e["date"])
+        except DatesError as error:
+            raise DatesError(f"{path.name}: {e['path']}: {error}") from None
+        out.append({**e, "date": datetime.datetime.strptime(day, "%Y-%m-%d")})
     return out
 
 
@@ -48,18 +56,11 @@ def items(entry: dict, root: Path) -> list:
 
 
 def commands(entry: dict, root: Path) -> list:
-    folder = root / entry["path"]
+    """touch and SetFile for the folder and, for an album, everything inside it (the folder is the first item)."""
     stamp = entry["date"].strftime("%Y%m%d%H%M.00")
     shown = entry["date"].strftime("%m/%d/%Y %H:%M:%S")
     every = [str(p) for p in items(entry, root)]
-    if entry["kind"] == "artist":
-        return [["touch", "-t", stamp, str(folder)], ["SetFile", "-d", shown, "-m", shown, str(folder)]]
-    return [
-        ["touch", "-t", stamp, *every],
-        ["touch", "-t", stamp, str(folder)],
-        ["SetFile", "-d", shown, "-m", shown, *every],
-        ["SetFile", "-d", shown, "-m", shown, str(folder)],
-    ]
+    return [["touch", "-t", stamp, *every], ["SetFile", "-d", shown, "-m", shown, *every]]
 
 
 def apply(entry: dict, root: Path) -> None:
@@ -166,8 +167,12 @@ def kind_of(path: str, kind: str | None) -> str:
 
 
 def read_document(path: Path) -> dict:
-    doc = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-    doc.setdefault("entries", [])
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    except (ValueError, OSError) as error:
+        raise DatesError(f"{path.name}: cannot be read: {error}") from None
+    if not isinstance(doc, dict) or not isinstance(doc.setdefault("entries", []), list):
+        raise DatesError(f"{path.name}: must be an object with a list 'entries'")
     return doc
 
 
