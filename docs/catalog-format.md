@@ -23,10 +23,10 @@ treats every album as not yet converted and not yet added.
 
 ```toml
 [paths]
-downloads = ["~/Music/Downloads"]      # folders that receive downloaded albums, one sub-folder per album
+downloads = []                         # folders that receive downloaded albums; empty: detect them (see below)
 library = "~/Music/Music/Media.localized/Music"
 auto_add = "~/Music/Music/Media.localized/Automatically Add to Music.localized"
-evacuation = "~/Music/HIStory Evacuated"
+evacuation = "~/Desktop/HIStory Evacuated"
 
 [convert]
 min_free_gb = 10                       # never let a conversion bring free space below this
@@ -44,7 +44,15 @@ offset = 88                            # downloaded track number minus catalog t
 ```
 
 Paths may start with `~`. A relative path is taken relative to the catalog folder. A missing `config.toml` gives
-the defaults shown above, with no download folders. `[store]` needs both `album` and `file`, and
+the defaults shown above.
+
+When `downloads` is empty or missing, `hist` scans the usual download folders of music services on macOS that
+exist: `~/Music/mora`, `~/Music/OTOTOY`, `~/Music/Qobuz`, `~/Music/Qobuz Downloads`, `~/Music/e-onkyo music`,
+`~/Music/HDtracks`, `~/Music/7digital`, `~/Music/Bandcamp`, `~/Music/Downloads`,
+`~/Downloads/Music`, `~/Downloads/mora`, `~/Downloads/OTOTOY`, `~/Downloads/Qobuz` and `~/Downloads/Bandcamp`. A
+folder that appears later is picked up by the next scan, and `hist doctor` shows the folders it found. The whole
+`~/Downloads` folder is never scanned; list it, or a folder in it, in `downloads` to use it. When `downloads` lists
+folders, only those are scanned, and a listed folder that does not exist is skipped without a warning. `[store]` needs both `album` and `file`, and
 `[match.renumber."Album"]` needs both `disc` and `offset`; otherwise `hist` reports a configuration error (exit
 status 2). The same error is reported for an unknown section or key, a value of the wrong type (for example
 `downloads = "x"` instead of a list, or a text for `min_free_gb`) and a negative `min_free_gb`. `hist init` writes a complete, commented `config.toml`.

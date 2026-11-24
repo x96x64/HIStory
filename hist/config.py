@@ -15,19 +15,40 @@ from hist.errors import HistError
 DEFAULT_HOME = "~/Library/Application Support/HIStory"
 DEFAULT_LIBRARY = "~/Music/Music/Media.localized/Music"
 DEFAULT_AUTO_ADD = "~/Music/Music/Media.localized/Automatically Add to Music.localized"
-DEFAULT_EVACUATION = "~/Music/HIStory Evacuated"
+DEFAULT_EVACUATION = "~/Desktop/HIStory Evacuated"
+# Folders where download services and their apps put albums by default on macOS. When [paths] downloads is empty or
+# missing, every one of these that exists is scanned; a folder that appears later is picked up by the next scan.
+# The whole ~/Downloads folder is not scanned, because it usually holds much more than music.
+AUTO_DOWNLOADS = (
+    "~/Music/mora",
+    "~/Music/OTOTOY",
+    "~/Music/Qobuz",
+    "~/Music/Qobuz Downloads",
+    "~/Music/e-onkyo music",
+    "~/Music/HDtracks",
+    "~/Music/7digital",
+    "~/Music/Bandcamp",
+    "~/Music/Downloads",
+    "~/Downloads/Music",
+    "~/Downloads/mora",
+    "~/Downloads/OTOTOY",
+    "~/Downloads/Qobuz",
+    "~/Downloads/Bandcamp",
+)
 
 TEMPLATE = """\
 # HIStory configuration. See docs/catalog-format.md for every key.
 
 [paths]
-# Folders that receive the downloaded albums (one sub-folder per album, at any depth).
+# Folders that receive the downloaded albums (one sub-folder per album, at any depth). Leave the list empty to
+# use the usual folders of download services (mora, OTOTOY, Qobuz, e-onkyo music, HDtracks, 7digital, Bandcamp
+# and ~/Downloads/Music) that exist; 'hist doctor' shows which ones were found.
 downloads = []
 # The Music app's media folder and its 'Automatically Add to Music' folder.
 library = "~/Music/Music/Media.localized/Music"
 auto_add = "~/Music/Music/Media.localized/Automatically Add to Music.localized"
 # Where 'hist evacuate' moves album folders out of the library.
-evacuation = "~/Music/HIStory Evacuated"
+evacuation = "~/Desktop/HIStory Evacuated"
 
 [convert]
 # An album is not converted unless this much space (GB) stays free after the work it needs.
@@ -64,6 +85,7 @@ def resolve_home(option: str | None = None) -> Path:
 class Config:
     home: Path
     downloads: tuple = ()
+    downloads_auto: bool = False
     library: Path = Path(DEFAULT_LIBRARY).expanduser()
     auto_add: Path = Path(DEFAULT_AUTO_ADD).expanduser()
     evacuation: Path = Path(DEFAULT_EVACUATION).expanduser()
@@ -97,6 +119,11 @@ class Config:
     def staging(self) -> Path:
         """Where the store file is copied to be cleaned; it is scanned like a download folder."""
         return self.state / "staging"
+
+    @property
+    def present_downloads(self) -> list:
+        """The download folders that exist now."""
+        return [p for p in self.downloads if p.is_dir()]
 
     @property
     def sources(self) -> list:
@@ -182,9 +209,11 @@ def load(home: Path, downloads_override=None) -> Config:
             raise ConfigError(f"[match.renumber.\"{album}\"] needs 'disc' and 'offset'")
         renumber[album] = {"disc": int(rule["disc"]), "offset": int(rule["offset"])}
     downloads = downloads_override if downloads_override else paths.get("downloads", [])
+    auto = not downloads
     return Config(
         home=home,
-        downloads=tuple(path(d) for d in downloads),
+        downloads=tuple(path(d) for d in (AUTO_DOWNLOADS if auto else downloads)),
+        downloads_auto=auto,
         library=path(paths.get("library", DEFAULT_LIBRARY)),
         auto_add=path(paths.get("auto_add", DEFAULT_AUTO_ADD)),
         evacuation=path(paths.get("evacuation", DEFAULT_EVACUATION)),
