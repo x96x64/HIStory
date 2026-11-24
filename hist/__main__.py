@@ -1,5 +1,8 @@
+"""Run the command with `python -m hist`."""
+
 import sys
 
 from hist.cli import main
 
-sys.exit(main())
+if __name__ == "__main__":
+    sys.exit(main())

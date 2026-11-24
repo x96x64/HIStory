@@ -3,8 +3,8 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "hist"
-version = "2.3.0"
+name = "his-story"
+version = "2.4.0"
 description = "Rebuild an Apple Music library on macOS from FLAC downloads with exact, verified tags"
 readme = "README.md"
 license = "MIT"
@@ -12,15 +12,30 @@ license-files = ["LICENSE"]
 authors = [{ name = "x96x64" }, { name = "Claude", email = "noreply@anthropic.com" }]
 requires-python = ">=3.12"
 dependencies = []
+keywords = ["apple-music", "macos", "flac", "alac", "music-library", "tagging", "metadata", "cli"]
 classifiers = [
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
-    "Operating System :: MacOS",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: MacOS :: MacOS X",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Multimedia :: Sound/Audio",
     "Topic :: Multimedia :: Sound/Audio :: Conversion",
+    "Typing :: Typed",
 ]
+
+[project.urls]
+Homepage = "https://github.com/x96x64/HIStory"
+Repository = "https://github.com/x96x64/HIStory"
+Issues = "https://github.com/x96x64/HIStory/issues"
+Changelog = "https://github.com/x96x64/HIStory/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
+dev = ["pytest>=8", "ruff"]
 
 [project.scripts]
 hist = "hist.cli:main"
@@ -28,5 +43,28 @@ hist = "hist.cli:main"
 [tool.setuptools]
 packages = ["hist"]
 
+[tool.setuptools.package-data]
+hist = ["py.typed"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["npm"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = [
+    "SIM105",  # try/except/pass is clearer than contextlib.suppress here
+    "SIM108",  # a plain if/else block is kept over a conditional expression
+    "B904",    # errors are re-raised as the tool's own exceptions
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011", "SIM117"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["hist"]
