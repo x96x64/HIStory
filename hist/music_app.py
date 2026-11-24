@@ -11,9 +11,11 @@ import time
 from hist import proc
 from hist.errors import HistError
 
+SEP = "\x1f"  # the field separator of the scripts below; a tab can occur in a name, this cannot
+
 QUERY = """on run argv
 	set albumName to item 1 of argv
-	set tb to tab
+	set tb to (ASCII character 31)
 	set out to {}
 	tell application "Music"
 		set ts to (every track of library playlist 1 whose album is albumName)
@@ -39,7 +41,7 @@ end tell
 set out to {}
 repeat with i from 1 to count of a
 	set x to item i of d
-	set end of out to (item i of a) & tab & (item i of k) & tab & ((year of x) as text) & " " & (((month of x) as integer) as text) & " " & ((day of x) as text) & " " & ((time of x) as text)
+	set end of out to (item i of a) & (ASCII character 31) & (item i of k) & (ASCII character 31) & ((year of x) as text) & " " & (((month of x) as integer) as text) & " " & ((day of x) as text) & " " & ((time of x) as text)
 end repeat
 set AppleScript's text item delimiters to linefeed
 return out as text"""
@@ -56,7 +58,7 @@ end run"""
 DELETE_ALBUM = """on run argv
 	tell application "Music"
 		activate
-		delete (every track of library playlist 1 whose album is (item 1 of argv))
+		delete (every track of library playlist 1 whose album is (item 1 of argv) and album artist is (item 2 of argv))
 	end tell
 end run"""
 
@@ -97,7 +99,7 @@ class MusicApp:
     def tracks(self, album: str) -> list[dict]:
         rows = []
         for line in self.osa(QUERY, album).splitlines():
-            parts = line.split("\t")
+            parts = line.split(SEP)
             if len(parts) == 8:
                 rows.append(
                     {
@@ -117,7 +119,7 @@ class MusicApp:
         """(album, kind, date added) of every track in the library."""
         out = []
         for line in self.osa(SUMMARY).splitlines():
-            album, kind, when = line.split("\t")
+            album, kind, when = line.rsplit(SEP, 2)
             year, month, day, seconds = (int(x) for x in when.split())
             out.append((album, kind, datetime.datetime(year, month, day) + datetime.timedelta(seconds=seconds)))
         return out
@@ -126,8 +128,9 @@ class MusicApp:
         self.osa(REFRESH, *ids)
         time.sleep(3)
 
-    def delete_album(self, album: str) -> None:
-        self.osa(DELETE_ALBUM, album)
+    def delete_album(self, album: str, album_artist: str) -> None:
+        """Remove the tracks of the album by that album artist (the same album name may exist for other artists)."""
+        self.osa(DELETE_ALBUM, album, album_artist)
 
     def delete_ids(self, ids: list[str]) -> None:
         self.osa(DELETE_IDS, *ids)

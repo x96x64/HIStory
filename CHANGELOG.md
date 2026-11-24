@@ -29,6 +29,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - With `-q`, the listing of `hist dates list`, the result of `hist dates check` and the messages of `hist stop` are
   still printed on standard output.
 - Starting `hist` is faster because the package version is read only when it is needed (`hist --version`).
+### Changed
+
+- `config.toml` is validated strictly: an unknown section or key, a value of the wrong type (such as a text for
+  `downloads` or `min_free_gb`) and a negative `min_free_gb` are configuration errors (exit status 2, code
+  `config`). Earlier versions iterated a text `downloads` character by character.
+- The `publish-npm` job of the release workflow waits for `publish-pypi`, so that npm never receives a version that
+  failed on PyPI.
+
+### Fixed
+
+- A malformed `dates.json` (invalid JSON, wrong structure, an invalid date, or a date before 1970) is reported as a
+  dates error with a clear message instead of a raw exception. Dates before 1970 are now refused when they are
+  read or set, not only when they are applied.
+- A tab in a track or album name no longer breaks the reading of the Music app's answers; the scripts now separate
+  fields with the ASCII unit separator.
+- `hist evacuate` removes only the entries of the album by its own album artist; an album of the same name by
+  another artist is left alone.
+- `hist evacuate` moves a folder to the evacuation folder even when that is on another volume.
+- `dates apply` no longer touches the album folder twice.
 
 ## [2.4.3] - 2026-11-24
 

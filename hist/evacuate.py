@@ -5,7 +5,7 @@ confirmation dialog; without the file it does not. Nothing is deleted from disk.
 folder in the Music app, one at a time, while 'hist watch' runs.
 """
 
-import os
+import shutil
 import time
 from pathlib import Path
 
@@ -29,7 +29,15 @@ def plan(config: Config, music: MusicApp, only: str) -> list:
         if not rows:
             continue
         folders = {str(Path(r["location"]).parent) for r in rows if r["location"]}
-        items.append({"order": order, "album": album["name"], "tracks": len(rows), "folders": sorted(folders)})
+        items.append(
+            {
+                "order": order,
+                "album": album["name"],
+                "tracks": len(rows),
+                "album_artist": rows[0]["album_artist"],
+                "folders": sorted(folders),
+            }
+        )
     return items
 
 
@@ -54,8 +62,8 @@ def run(config: Config, music: MusicApp, only: str, dry_run: bool) -> int:
             log.warning(f"{dst} already exists; {it['album']} skipped")
             failed += 1
             continue
-        os.rename(src, dst)
-        music.delete_album(it["album"])
+        shutil.move(src, dst)
+        music.delete_album(it["album"], it["album_artist"])
         for _ in range(45):
             if not music.tracks(it["album"]):
                 state.added(config.state).remove(it["album"])
