@@ -7,6 +7,7 @@ to run osascript fails the test.
 import os
 import shutil
 import subprocess
+from functools import cached_property
 from pathlib import Path
 
 import pytest
@@ -99,7 +100,11 @@ class Env:
             f'evacuation = "{root / "evacuated"}"\n\n[convert]\nmin_free_gb = 0\n',
             encoding="utf-8",
         )
-        self.cover = make_cover(root / "cover.jpg", "red")
+
+    @cached_property
+    def cover(self) -> Path:
+        """Made on first use, so tests that need no audio tools also run where ffmpeg is missing."""
+        return make_cover(self.root / "cover.jpg", "red")
 
     def config(self, **changes) -> config.Config:
         cfg = config.load(self.home)
