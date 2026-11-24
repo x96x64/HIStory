@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-11-24
+
 ### Added
 
 - `--json` output for `catalog list`, `show`, `edit` and `check`, `dates list` and `check`, `status`, `doctor` and
@@ -19,8 +21,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   the catalog folder by `hist init`.
 - Every writer of `tracks.json` and `dates.json` takes the "catalog" lock.
 
+- The npm package `his-story`: a thin wrapper that runs the Python package with `python3`. Set `HIST_PYTHON` to
+  choose the interpreter.
+- `python -m hist`, and `hist.__version__` read from the installed package metadata.
+- Continuous integration on GitHub (ruff, pytest, Conventional Commits), a release workflow that publishes to PyPI
+  and npm, issue and pull request templates, and Dependabot.
+- `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `docs/releasing.md`, `.editorconfig`,
+  `.pre-commit-config.yaml` and `scripts/check_versions.py`.
+- The `dev` extra (`pip install -e '.[dev]'`), the `py.typed` marker, project URLs and more classifiers.
+
 ### Changed
 
+- The distribution is named `his-story` on PyPI and npm; the command and the Python package are still `hist`.
+  Remove the old installation with `pipx uninstall hist` before `pipx install his-story`.
+- The code is formatted and checked with ruff.
+- The maintainer's personal workflow notes moved out of the repository; `docs/releasing.md` describes the release
+  procedure.
 - Errors say what to run next; `catalog set` and `edit` print the `hist retag` command to run.
 - `hist init` writes a complete, commented `config.toml`.
 - Commands that need macOS (Music app, `osascript`, `SetFile`) fail at once on other systems; a missing external
@@ -118,3 +134,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Handling of one album bought in the Music app's store: purchase data removed without re-encoding.
 - Safe stopping (first Ctrl-C or `hist stop` finishes the current album), locks against concurrent runs, and
   log files under `state/logs/`.
+
+[Unreleased]: https://github.com/x96x64/HIStory/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/x96x64/HIStory/compare/v2.3.0...v2.4.0
+[2.3.0]: https://github.com/x96x64/HIStory/compare/v2.2.0...v2.3.0
+[2.2.0]: https://github.com/x96x64/HIStory/compare/v2.1.0...v2.2.0
+[2.1.0]: https://github.com/x96x64/HIStory/compare/v2.0.0...v2.1.0
+[2.0.0]: https://github.com/x96x64/HIStory/compare/v1.2.0...v2.0.0
+[1.2.0]: https://github.com/x96x64/HIStory/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/x96x64/HIStory/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/x96x64/HIStory/releases/tag/v1.0.0
