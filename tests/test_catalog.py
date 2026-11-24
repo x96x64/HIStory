@@ -28,6 +28,7 @@ def record(title, number):
     }
 
 
+@needs_tools
 def test_set_and_unset_keep_backups_and_guard_the_policy(env):
     write_records(env, [record("One", 1), record("Two", 2)])
     cfg = env.config()
@@ -44,6 +45,7 @@ def test_set_and_unset_keep_backups_and_guard_the_policy(env):
         catalog.set_tag(cfg, "nothing", "Genre", "Pop")
 
 
+@needs_tools
 def test_check_reports_missing_tags_and_covers(env):
     bad = record("One", 1)
     del bad["tags"]["ItemList:DiskNumber"]
@@ -88,6 +90,7 @@ A_COVER = hashlib.sha256(b"a").hexdigest()
 B_COVER = hashlib.sha256(b"b").hexdigest()
 
 
+@needs_tools
 def test_remove_album_cleans_every_file_of_the_catalog_folder(env):
     other = record("Hit", 1)
     other["file"] = "C/Other/01 Hit.m4a"
@@ -130,6 +133,7 @@ def test_remove_album_cleans_every_file_of_the_catalog_folder(env):
     assert catalog.check(cfg) == []
 
 
+@needs_tools
 def test_remove_album_keeps_an_artist_entry_still_in_use(env):
     write_records(env, [record("One", 1), record("Two", 2)])
     env.home.joinpath("dates.json").write_text(
