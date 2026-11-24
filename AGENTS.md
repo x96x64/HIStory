@@ -7,7 +7,8 @@
 ## Setup
 
 ```sh
-python -m venv .venv && .venv/bin/pip install -e '.[test]'
+python -m venv .venv && .venv/bin/pip install -e '.[dev]'
+.venv/bin/pre-commit install  # optional: pip install pre-commit
 ```
 
 ## Build and Test Commands
@@ -15,13 +16,17 @@ python -m venv .venv && .venv/bin/pip install -e '.[test]'
 ```sh
 .venv/bin/python -m pytest -q
 .venv/bin/python -m pytest -q tests/test_agent.py
+.venv/bin/ruff check .
+.venv/bin/ruff format --check .
+.venv/bin/ruff check --fix . && .venv/bin/ruff format .
 .venv/bin/hist --help
+.venv/bin/python -m build  # needs: pip install build
 ```
 
 ## Code Style
 
 - Python 3.12 or newer and the standard library only; do not add dependencies.
-- Use type hints on function signatures, short docstrings, and lines of at most 120 characters.
+- Use type hints on function signatures, short docstrings, and lines of at most 120 characters; `ruff check` and `ruff format --check` must pass.
 - Commands are `argparse` sub-commands in `hist/cli.py`; keep the logic in the other modules and keep `cli.py` thin.
 - Write help text and documentation in clear, formal English with ASCII quotes.
 

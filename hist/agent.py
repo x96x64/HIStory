@@ -109,7 +109,8 @@ GUIDE = {
 
 CLAUDE_MD = "@AGENTS.md\n"
 
-SETUP = "python -m venv .venv && .venv/bin/pip install -e '.[test]'"
+SETUP = "python -m venv .venv && .venv/bin/pip install -e '.[dev]'"
+LINT = [".venv/bin/ruff check .", ".venv/bin/ruff format --check ."]
 TEST = ".venv/bin/python -m pytest -q"
 
 
@@ -157,14 +158,24 @@ def agents_md(repository: bool = False) -> str:
             "must have. The package is `hist/` and the command is `hist` (`hist.cli:main`). The documentation is "
             "in `README.md` and `docs/`.\n",
             "## Setup\n",
-            _code([SETUP]),
+            _code([SETUP, ".venv/bin/pre-commit install  # optional: pip install pre-commit"]),
             "## Build and Test Commands\n",
-            _code([TEST, f"{TEST} tests/test_agent.py", ".venv/bin/hist --help"]),
+            _code(
+                [
+                    TEST,
+                    f"{TEST} tests/test_agent.py",
+                    *LINT,
+                    ".venv/bin/ruff check --fix . && .venv/bin/ruff format .",
+                    ".venv/bin/hist --help",
+                    ".venv/bin/python -m build  # needs: pip install build",
+                ]
+            ),
             "## Code Style\n",
             _bullets(
                 [
                     "Python 3.12 or newer and the standard library only; do not add dependencies.",
-                    "Use type hints on function signatures, short docstrings, and lines of at most 120 characters.",
+                    "Use type hints on function signatures, short docstrings, and lines of at most 120 characters; "
+                    "`ruff check` and `ruff format --check` must pass.",
                     "Commands are `argparse` sub-commands in `hist/cli.py`; keep the logic in the other modules "
                     "and keep `cli.py` thin.",
                     "Write help text and documentation in clear, formal English with ASCII quotes.",
