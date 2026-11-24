@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-11-24
+
+This release changes the name of the npm package to `@x96x64/his-story`. npm refused the name `his-story` given in
+2.4.0, so 2.4.0 was published only on PyPI. The Python package, the command and its behavior are unchanged.
+
+### Changed
+
+- The npm package is now named `@x96x64/his-story` (a public scoped package) instead of `his-story`. npm's
+  publishing policy rejected `his-story` as too similar to the existing package `history`, so the 2.4.0 release
+  failed to publish to npm and no npm package of 2.4.0 exists. Install the command from npm with
+  `npm install -g @x96x64/his-story`. The installed command is still `hist`, and the npm package still runs the
+  bundled Python code with `python3` (3.12 or newer).
+- The PyPI distribution keeps the name `his-story`; `pip install his-story` and `pipx install his-story` work as
+  before and install 2.4.1.
+- The README npm badge and link, the installation instructions in the README, and the release checklist in
+  `docs/releasing.md` name the scoped npm package.
+
+### Fixed
+
+- The release workflow can publish to npm again: the `publish-npm` job of 2.4.0 stopped with `E403 Forbidden`
+  because of the rejected name, which also skipped the automatic creation of the GitHub release. The 2.4.0 GitHub
+  release was created by hand from the same notes.
+
+### Migration
+
+- No migration is needed for the catalog, the configuration or the library.
+- If you tried `npm install -g his-story`, it did not install this project; use
+  `npm install -g @x96x64/his-story` instead.
+- Users who installed from PyPI can upgrade with `pip install --upgrade his-story` or `pipx upgrade his-story`.
+
 ## [2.4.0] - 2026-11-24
 
 This release adds machine-readable output and batch editing for scripts and AI agents, renames the distribution to
@@ -190,7 +220,8 @@ This release contains breaking changes; see the migration steps below.
 - Safe stopping (first Ctrl-C or `hist stop` finishes the current album), locks against concurrent runs, and
   log files under `state/logs/`.
 
-[Unreleased]: https://github.com/x96x64/HIStory/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/x96x64/HIStory/compare/v2.4.1...HEAD
+[2.4.1]: https://github.com/x96x64/HIStory/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/x96x64/HIStory/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/x96x64/HIStory/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/x96x64/HIStory/compare/v2.1.0...v2.2.0

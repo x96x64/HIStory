@@ -4,7 +4,7 @@ HIStory (`hist`) rebuilds an Apple Music library on macOS from FLAC downloads, s
 
 [![CI](https://github.com/x96x64/HIStory/actions/workflows/ci.yml/badge.svg)](https://github.com/x96x64/HIStory/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/his-story.svg)](https://pypi.org/project/his-story/)
-[![npm](https://img.shields.io/npm/v/his-story.svg)](https://www.npmjs.com/package/his-story)
+[![npm](https://img.shields.io/npm/v/@x96x64/his-story.svg)](https://www.npmjs.com/package/@x96x64/his-story)
 [![Python versions](https://img.shields.io/pypi/pyversions/his-story.svg)](https://pypi.org/project/his-story/)
 [![License](https://img.shields.io/github/license/x96x64/HIStory.svg)](https://github.com/x96x64/HIStory/blob/main/LICENSE)
 
@@ -52,10 +52,10 @@ Or with `pip`, into the Python environment of your choice:
 pip install his-story
 ```
 
-Or with npm. The npm package is a thin wrapper that runs the bundled Python code with `python3` (3.12 or newer), so Python must still be installed:
+Or with npm, from the package `@x96x64/his-story`. The npm package is a thin wrapper that runs the bundled Python code with `python3` (3.12 or newer), so Python must still be installed:
 
 ```sh
-npm install -g his-story
+npm install -g @x96x64/his-story
 ```
 
 To work on the code, install from a clone of the repository in editable mode:
@@ -160,7 +160,7 @@ The tool itself needs only the Python standard library; the tests use pytest. Af
 
 ## Versioning and Changelog
 
-The project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The current version is 2.4.0; `hist --version` prints the installed one. The same version is published on PyPI and npm under the name `his-story`.
+The project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The current version is 2.4.1; `hist --version` prints the installed one. The same version is published on PyPI as `his-story` and on npm as `@x96x64/his-story`.
 
 Every notable change is recorded in [CHANGELOG.md](CHANGELOG.md), in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Read it before upgrading, because changes to the catalog format or to command behavior are listed there.
 
