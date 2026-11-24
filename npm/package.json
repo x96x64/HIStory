@@ -1,6 +1,6 @@
 {
   "name": "@x96x64/his-story",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "description": "Rebuild an Apple Music library on macOS from FLAC downloads with exact, verified tags",
   "license": "MIT",
   "repository": {

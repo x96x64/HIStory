@@ -160,7 +160,7 @@ The tool itself needs only the Python standard library; the tests use pytest. Af
 
 ## Versioning and Changelog
 
-The project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The current version is 2.4.1; `hist --version` prints the installed one. The same version is published on PyPI as `his-story` and on npm as `@x96x64/his-story`.
+The project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The current version is 2.4.2; `hist --version` prints the installed one. The same version is published on PyPI as `his-story` and on npm as `@x96x64/his-story`.
 
 Every notable change is recorded in [CHANGELOG.md](CHANGELOG.md), in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Read it before upgrading, because changes to the catalog format or to command behavior are listed there.
 

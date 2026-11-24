@@ -39,7 +39,8 @@ This document is for maintainers. A release publishes the package `his-story` to
 
 7. The workflow `release.yml` runs on the tag. It checks that the tag, `pyproject.toml`, `npm/package.json` and the
    changelog name the same version, runs the tests on macOS, builds the sdist and wheel, publishes to PyPI with
-   Trusted Publishing, publishes to npm with provenance, and creates the GitHub Release with the notes written by
+   Trusted Publishing, publishes to npm (without provenance while the
+   repository is private), and creates the GitHub Release with the notes written by
    `scripts/release_notes.py` (see Release Notes).
 8. Check that `pip install his-story==X.Y.Z` and `npm install -g @x96x64/his-story@X.Y.Z` provide `hist --version`.
 

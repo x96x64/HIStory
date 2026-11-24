@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.4.2] - 2026-11-24
+
+This release is the first one published on npm. The 2.4.1 release reached PyPI, but npm refused its package, so no
+npm package of 2.4.1 exists. The Python package, the command and its behavior are unchanged from 2.4.1.
+
+### Fixed
+
+- The release workflow publishes the npm package `@x96x64/his-story` without a provenance statement. In 2.4.1 the
+  `publish-npm` job ran `npm publish --provenance`, and npm rejected the upload with
+  `E422 Unprocessable Entity - Error verifying sigstore provenance bundle: Unsupported GitHub Actions source
+  repository visibility`, because npm accepts provenance only from public repositories. The failure also skipped
+  the automatic creation of the 2.4.1 GitHub release, which was created by hand from the same notes.
+- `docs/releasing.md` describes the npm step without provenance. Provenance can be turned on again when the
+  repository becomes public.
+
+### Migration
+
+- No migration is needed for the catalog, the configuration or the library.
+- Install from npm with `npm install -g @x96x64/his-story`; this is the first version available there.
+- Users who installed from PyPI can upgrade with `pip install --upgrade his-story` or `pipx upgrade his-story`.
+
 ## [2.4.1] - 2026-11-24
 
 This release changes the name of the npm package to `@x96x64/his-story`. npm refused the name `his-story` given in
@@ -220,7 +241,8 @@ This release contains breaking changes; see the migration steps below.
 - Safe stopping (first Ctrl-C or `hist stop` finishes the current album), locks against concurrent runs, and
   log files under `state/logs/`.
 
-[Unreleased]: https://github.com/x96x64/HIStory/compare/v2.4.1...HEAD
+[Unreleased]: https://github.com/x96x64/HIStory/compare/v2.4.2...HEAD
+[2.4.2]: https://github.com/x96x64/HIStory/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/x96x64/HIStory/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/x96x64/HIStory/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/x96x64/HIStory/compare/v2.2.0...v2.3.0
