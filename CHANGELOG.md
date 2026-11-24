@@ -11,6 +11,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `hist convert` and `hist watch` resume an album whose conversion was interrupted. Before, the tracks that were
   already converted (their FLAC files deleted) were not counted, so the album was reported as "still downloading"
   and never finished.
+- File and input errors (a missing cover or edit file, an unwritable export path, a file that is not valid JSON or
+  UTF-8) are reported as `hist: error: ...`, or as `{"error": {"message": ..., "code": "error"}}` with `--json`,
+  with exit status 1, instead of a traceback.
+- With `--json`, a command-line usage error is printed as `{"error": {"message": ..., "code": "usage"}}` on standard
+  error, with exit status 2.
+- The notice about moving old backups is no longer printed before `--json` output.
+- `hist stop` no longer fails with a traceback when the recorded process no longer exists or belongs to another
+  user, and it reports "Nothing is running" for a stale or invalid process id.
+- A second SIGINT or SIGTERM stops `watch` and `convert` at once, whichever signal came first.
+- `hist catalog list --json` no longer fails for an album whose files are outside the library folder.
+- `hist stop` and the other commands that look for the running process only read the lock file; they no longer take
+  the lock for a moment, which could make a concurrent writer fail with the code `locked`.
+
+### Changed
+
+- With `-q`, the listing of `hist dates list`, the result of `hist dates check` and the messages of `hist stop` are
+  still printed on standard output.
+- Starting `hist` is faster because the package version is read only when it is needed (`hist --version`).
 
 ## [2.4.3] - 2026-11-24
 

@@ -181,16 +181,22 @@ class Lock:
 
 
 def holder(state_dir: Path, name: str) -> int | None:
-    """The process id holding <name>.lock, or None when nobody holds it."""
-    path = state_dir / f"{name}.lock"
-    if not path.exists():
+    """The process id holding <name>.lock, or None when nobody holds it.
+
+    The file is only read: taking the lock here, even briefly, could make a concurrent writer fail with 'locked'.
+    The owner writes its id on acquiring and clears the file on releasing; an id whose process is gone is stale.
+    """
+    try:
+        text = (state_dir / f"{name}.lock").read_text().strip()
+    except OSError:
         return None
-    with open(path, "a+") as handle:
-        try:
-            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            handle.seek(0)
-            text = handle.read().strip()
-            return int(text) if text.isdigit() else -1
-        fcntl.flock(handle, fcntl.LOCK_UN)
-    return None
+    if not text.isdigit() or int(text) <= 0:
+        return None
+    pid = int(text)
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return None
+    except PermissionError:
+        pass
+    return pid
