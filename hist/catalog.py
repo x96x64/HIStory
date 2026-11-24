@@ -257,7 +257,7 @@ def add_spec(config: Config, spec: dict, flac_dir: Path, dry_run: bool = False) 
     config.covers.mkdir(parents=True, exist_ok=True)
     cover = config.covers / records[0]["blobs"]["ItemList:CoverArt"][0]
     if not cover.exists():
-        cover.write_bytes(picture)
+        state.write_bytes(cover, picture)
     write_records(config, existing + records, state.Backup(config.state, "catalog-add"))
     return len(records)
 
@@ -292,9 +292,7 @@ def set_cover(config: Config, album_text: str, image: Path, exact: bool = False)
         stored = config.covers / digest
         if not stored.exists():
             config.covers.mkdir(parents=True, exist_ok=True)
-            tmp = stored.with_name(stored.name + ".tmp")
-            tmp.write_bytes(picture)
-            os.replace(tmp, stored)
+            state.write_bytes(stored, picture)
         for r in changed:
             r["blobs"]["ItemList:CoverArt"] = [digest]
         write_records(config, records, state.Backup(config.state, "catalog-cover"))
@@ -355,7 +353,7 @@ def export_spec(config: Config, album_text: str, exact: bool = False, cover_to: 
         else:
             picture = source.read_bytes()
             target = cover_to.with_name(f"{cover_to.stem}-cover.{image_kind(picture) or 'jpg'}")
-            target.write_bytes(picture)
+            state.write_bytes(target, picture)
             spec["cover"] = target.name
     spec["tracks"] = tracks
 
