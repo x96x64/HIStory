@@ -46,7 +46,8 @@ offset = 88                            # downloaded track number minus catalog t
 Paths may start with `~`. A relative path is taken relative to the catalog folder. A missing `config.toml` gives
 the defaults shown above, with no download folders. `[store]` needs both `album` and `file`, and
 `[match.renumber."Album"]` needs both `disc` and `offset`; otherwise `hist` reports a configuration error (exit
-status 2). `hist init` writes a complete, commented `config.toml`.
+status 2). The same error is reported for an unknown section or key, a value of the wrong type (for example
+`downloads = "x"` instead of a list, or a text for `min_free_gb`) and a negative `min_free_gb`. `hist init` writes a complete, commented `config.toml`.
 
 Download folders are matched to catalog albums by album and artist name (one may contain the other) and by the
 number of files. When a folder's album name contains the name of a different album, the album whose name fits
