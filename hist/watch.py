@@ -19,11 +19,6 @@ def wanted(only: str, name: str) -> bool:
     return not only or tags.norm(only) in tags.norm(name)
 
 
-def waiting_for(config: Config, only: str) -> list:
-    """Albums still to be converted; an album already in the library counts as done."""
-    return convert.pending(config, only)
-
-
 def run(
     config: Config, options: convert.Options, stopper: Stopper, interval: float = 10, convert_only: bool = False
 ) -> int:
@@ -51,7 +46,7 @@ def run(
             for line in result.low_disk:
                 log.warning(f"low disk space: {line}; skipped for now")
             last_low = result.low_disk
-        names = waiting_for(config, options.only)
+        names = convert.pending(config, options.only)  # an album already in the library counts as done
         absent = [] if follower is None else [n for n in follower.missing() if wanted(options.only, n)]
         if not names and not absent:
             log.info(
