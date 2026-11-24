@@ -12,8 +12,7 @@ from pathlib import Path
 from hist import catalog, dates, state, tags
 from hist.config import Config
 from hist.log import log
-
-SETTLE_SECONDS = 10
+from hist.matching import SETTLE_SECONDS
 
 
 def album_folders(library: Path) -> dict:
