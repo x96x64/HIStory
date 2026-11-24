@@ -315,7 +315,12 @@ def read_spec(path: Path) -> dict:
 
 def spec_records(config: Config, spec: dict, flac_dir: Path) -> tuple:
     """The catalog records of a spec, and the cover bytes (from 'cover' or the first FLAC's picture)."""
-    flacs = sorted(flac_dir.expanduser().glob("*.flac"))
+    folder = flac_dir.expanduser()
+    flacs = (
+        sorted(p for p in folder.iterdir() if p.suffix.lower() == ".flac" and not p.name.startswith("."))
+        if folder.is_dir()
+        else []
+    )
     if not flacs:
         raise CatalogError(f"no FLAC files in {flac_dir}")
     if len(flacs) != len(spec["tracks"]):
