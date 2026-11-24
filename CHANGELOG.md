@@ -71,6 +71,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `ItemList:Genre` instead of creating `ItemList:genre`.
 - `tracks.json`, `dates.json`, the progress files and covers are written to a temporary file in the same folder,
   synced to disk and renamed, so a crash cannot leave a truncated file. Covers used to be written in place.
+- `hist catalog add` and `hist store` find FLAC and M4A files whose suffix is in upper case and ignore hidden
+  files such as the `._` files that macOS writes on other file systems.
 
 ## [2.4.3] - 2026-11-24
 

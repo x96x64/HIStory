@@ -201,3 +201,12 @@ def test_a_backup_folder_is_made_only_when_a_file_is_kept(tmp_path):
     other.base = backup.base  # as if both ran in the same second
     first, second = backup.keep(tmp_path / "tracks.json"), other.keep(tmp_path / "tracks.json")
     assert first.parent.name.endswith("-catalog-import") and second.parent.name == first.parent.name + "-2"
+
+
+@needs_tools
+def test_add_spec_takes_upper_case_flac_files_and_skips_hidden_ones(env):
+    d = env.download("Shout", "Shout", "Band", ["Uno", "Dos"])
+    for p in list(d.glob("*.flac")):
+        p.rename(p.with_suffix(".FLAC"))
+    (d / "._resource.flac").write_bytes(b"x")
+    assert catalog.add_spec(env.config(), spec("Shout", "Band", "2001-02-03", ["One", "Two"]), d) == 2

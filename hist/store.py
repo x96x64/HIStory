@@ -21,7 +21,11 @@ class StoreError(HistError):
 
 def cleaned_copy(config: Config) -> Path | None:
     folder = config.store_staged.parent
-    files = sorted(folder.glob("*.m4a")) if folder.is_dir() else []
+    files = (
+        sorted(p for p in folder.iterdir() if p.suffix.lower() == ".m4a" and not p.name.startswith("."))
+        if folder.is_dir()
+        else []
+    )
     return files[0] if len(files) == 1 else None
 
 

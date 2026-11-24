@@ -149,3 +149,13 @@ def test_stage_store_file_leaves_no_partial_copy(env):
     assert convert.stage_store_file(cfg, set())
     assert cfg.store_staged.read_bytes() == b"data"
     assert [p.name for p in cfg.store_staged.parent.iterdir()] == ["song.m4a"]
+
+
+def test_the_cleaned_store_copy_is_found_whatever_the_suffix_case(env):
+    from hist import store
+
+    cfg = env.config(store_album="Hits", store_file="song.m4a")
+    cfg.store_staged.parent.mkdir(parents=True, exist_ok=True)
+    (cfg.store_staged.parent / "song.M4A").write_bytes(b"x")
+    (cfg.store_staged.parent / ".song.converting.m4a").write_bytes(b"x")
+    assert store.cleaned_copy(cfg).name == "song.M4A"
