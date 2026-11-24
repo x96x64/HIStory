@@ -15,6 +15,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -25,10 +26,19 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
+      # The runner's regional Ubuntu mirror is sometimes very slow: give it a few minutes, then use the main mirror.
       - name: Install audio tools
+        timeout-minutes: 15
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg flac libimage-exiftool-perl
+          packages="ffmpeg flac libimage-exiftool-perl"
+          install="sudo apt-get install -y --no-install-recommends $packages"
+          if ! { timeout 120 sudo apt-get update && timeout 300 $install; }; then
+            sudo sed -i -E 's#https?://[a-z0-9.-]*archive\.ubuntu\.com#http://archive.ubuntu.com#g' \
+              /etc/apt/sources.list.d/*.sources /etc/apt/sources.list 2>/dev/null || true
+            sudo dpkg --configure -a
+            sudo apt-get update
+            $install
+          fi
       - run: pip install -e '.[dev]'
       - run: ruff check .
       - run: ruff format --check .
