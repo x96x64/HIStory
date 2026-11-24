@@ -16,7 +16,7 @@ HEARTBEAT = 1500
 
 
 def wanted(only: str, name: str) -> bool:
-    return not only or tags.norm(only) in tags.norm(name)
+    return tags.matches_only(only, name)
 
 
 def run(

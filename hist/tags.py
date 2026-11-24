@@ -52,6 +52,11 @@ def norm(text) -> str:
     return re.sub(r"^(the|a|an) ", "", text)
 
 
+def matches_only(only: str, name: str) -> bool:
+    """True when no --only filter is given or its text is part of the name (ignoring case and accents)."""
+    return not only or norm(only) in norm(name)
+
+
 @cache
 def similarity(a: str, b: str, mode: str) -> float:
     if not a or not b:
