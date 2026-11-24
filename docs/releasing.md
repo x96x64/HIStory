@@ -9,8 +9,9 @@ This document is for maintainers. A release publishes the package `his-story` to
    project) and add a GitHub publisher with owner `x96x64`, repository `HIStory`, workflow `release.yml` and
    environment `pypi`.
 2. GitHub environment: in the repository settings, create the environment `pypi`. Optionally require a reviewer.
-3. npm token: on npmjs.com, create an automation (granular) access token that can publish `@x96x64/his-story`,
-   and store it as the repository secret `NPM_TOKEN`.
+3. npm Trusted Publishing: on npmjs.com, open the package `@x96x64/his-story`, go to Settings, and add a trusted
+   publisher of type GitHub Actions with organization or user `x96x64`, repository `HIStory` and workflow
+   `release.yml`. No npm token or repository secret is needed.
 
 ## Procedure
 
@@ -39,8 +40,8 @@ This document is for maintainers. A release publishes the package `his-story` to
 
 7. The workflow `release.yml` runs on the tag. It checks that the tag, `pyproject.toml`, `npm/package.json` and the
    changelog name the same version, runs the tests on macOS, builds the sdist and wheel, publishes to PyPI with
-   Trusted Publishing, publishes to npm (without provenance while the
-   repository is private), and creates the GitHub Release with the notes written by
+   Trusted Publishing, publishes to npm
+   with Trusted Publishing (with provenance), and creates the GitHub Release with the notes written by
    `scripts/release_notes.py` (see Release Notes).
 8. Check that `pip install his-story==X.Y.Z` and `npm install -g @x96x64/his-story@X.Y.Z` provide `hist --version`.
 

@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- The release workflow publishes the npm package `@x96x64/his-story` with npm Trusted Publishing (OpenID Connect)
+  instead of the access token in the repository secret `NPM_TOKEN`. The `publish-npm` job uses Node.js 24 and the
+  latest npm, and npm attaches a provenance statement to every release again now that the repository is public.
+- `docs/releasing.md` describes the trusted publisher to set up on npmjs.com instead of the npm token.
+
 ## [2.4.2] - 2026-11-24
 
 This release is the first one published on npm. The 2.4.1 release reached PyPI, but npm refused its package, so no
