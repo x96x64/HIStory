@@ -11,7 +11,7 @@ import os
 import re
 from pathlib import Path
 
-from hist import matching, proc, state, tags
+from hist import dates, matching, proc, state, tags
 from hist.config import Config
 from hist.errors import HistError
 from hist.tags import Track
@@ -275,9 +275,9 @@ def undo(config: Config, dry_run: bool = False) -> dict:
         parse_records(source / "tracks.json")
     if "dates.json" in names:
         try:
-            state.read_json(source / "dates.json", {})
-        except ValueError as error:
-            raise CatalogError(f"{source / 'dates.json'} is not valid JSON: {error}") from None
+            dates.entries(source / "dates.json")
+        except dates.DatesError as error:
+            raise CatalogError(f"{source / 'dates.json'} cannot be restored: {error}") from None
     cover_dir = source / "covers"
     covers = (
         sorted(c.name for c in cover_dir.iterdir() if not (config.covers / c.name).exists())

@@ -212,7 +212,8 @@ replaced.
 : Restore `tracks.json` and `dates.json` from the newest folder of `state/backups/` that holds one of them (a
 backup of `retag` is not used), and put back the covers of that folder that are missing from `covers/`. The files
 it replaces are kept first in a new backup folder `<time>-catalog-undo`, so a second `undo` redoes the change. It
-holds the catalog lock. `state/added.json` and `state/converted.json` are not restored. The library files keep their
+holds the catalog lock. A backup whose `tracks.json` or `dates.json` is malformed is refused, and nothing is
+changed. `state/added.json` and `state/converted.json` are not restored. The library files keep their
 tags until `hist retag`. With `--dry-run`, show what would be restored.
 
 `remove ALBUM [--dry-run] [--exact]`

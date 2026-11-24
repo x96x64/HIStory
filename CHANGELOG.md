@@ -12,7 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `hist catalog undo [--dry-run] [--json]` restores `tracks.json` and `dates.json` (and covers that are missing)
   from the newest backup in `state/backups/`. It first keeps the files it replaces in a new backup, so a second
-  `undo` redoes the change. It holds the catalog lock. It is listed in `docs/commands.md` and in the agent guide.
+  `undo` redoes the change. It holds the catalog lock and refuses a backup whose `tracks.json` or `dates.json` is
+  malformed, so that it never restores a file that later commands would reject. It is listed in `docs/commands.md`
+  and in the agent guide.
 
 ### Changed
 
@@ -33,7 +35,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `hist convert` and `hist watch` resume an album whose conversion was interrupted. Before, the tracks that were
   already converted (their FLAC files deleted) were not counted, so the album was reported as "still downloading"
-  and never finished.
+  and never finished. An album also resumes when the run stopped after a FLAC file had been tagged with the
+  catalog's names but before it was deleted: every file of the chosen folder is now compared as the catalog's album
+  and artist, and a leftover M4A file is matched with the catalog track its FLAC pairs with, not only with the FLAC's
+  own tags.
 - File and input errors (a missing cover or edit file, an unwritable export path, a file that is not valid JSON or
   UTF-8) are reported as `hist: error: ...`, or as `{"error": {"message": ..., "code": "error"}}` with `--json`,
   with exit status 1, instead of a traceback.

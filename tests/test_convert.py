@@ -72,6 +72,17 @@ def test_an_interrupted_album_is_resumed(env, monkeypatch):
     assert not list(d.glob("*.flac"))
 
 
+def test_an_album_interrupted_before_a_tagged_flac_was_deleted_is_resumed(env):
+    d = setup_album(env)
+    first = sorted(d.glob("*.flac"))[0]
+    track = next(t for t in catalog.load(env.config()) if tags.pick(t.tags, "title") == "One")
+    convert.process_file(first, track, env.config().covers, True)  # stopped before the FLAC was deleted
+    assert first.exists() and (d / "01 One.m4a").exists()
+    assert convert.run_once(env.config(), convert.Options()).converted == 1
+    assert sorted(p.name for p in d.glob("*.m4a")) == ["01 One.m4a", "02 Two.m4a", "03 Three.m4a"]
+    assert not list(d.glob("*.flac"))
+
+
 def test_alias_and_renumber(env):
     d = env.download("Big Box", "Big Box", "Band", ["Live A", "Live B"], numbers=[89, 90], discs=[8, 8])
     env.add_album(spec("Live Night", "Band", "2012-09-18", ["Song A (Live)", "Song B (Live)"]), d)

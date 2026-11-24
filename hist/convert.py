@@ -170,18 +170,28 @@ def album_state(config: Config, album: dict, folders: list, all_albums: list):
     return folder, "; ".join(problems) if problems else None
 
 
-def pair_album(config: Config, album: dict, folder) -> list:
-    """(FLAC path, catalog track) for every file of the folder."""
-    flacs = sorted(p for p in folder.files if p.suffix.lower() == ".flac")
-    current = tags.read_tracks([(str(folder.path), str(p)) for p in flacs])
-    if config.aliases.get(album["name"]):
-        for t in current:  # the download folder is named differently; compare as the catalog's album
-            t.album = tags.norm(album["name"])
+def as_catalog(config: Config, album: dict, current: list[Track]) -> list[Track]:
+    """Downloaded tracks with the album, artist and numbers the catalog compares them by.
+
+    The folder was chosen for this album, so every file counts as the catalog's album and artist: the download may be
+    named differently (an alias), and a FLAC that an interrupted run already tagged carries the catalog's names while
+    the others still carry the download's. Renumbering maps one disc of a larger set onto the catalog's numbers.
+    """
+    if album["tracks"]:
+        for t in current:
+            t.album, t.artist = album["tracks"][0].album, album["tracks"][0].artist
     renumber = config.renumber.get(album["name"])
     if renumber:  # one disc of a larger set, numbered on from the earlier discs
         for t in current:
             if t.number is not None:
                 t.number = (renumber["disc"], t.number[1] - renumber["offset"])
+    return current
+
+
+def pair_album(config: Config, album: dict, folder) -> list:
+    """(FLAC path, catalog track) for every file of the folder."""
+    flacs = sorted(p for p in folder.files if p.suffix.lower() == ".flac")
+    current = as_catalog(config, album, tags.read_tracks([(str(folder.path), str(p)) for p in flacs]))
     # tracks an interrupted run already converted are M4A files with the catalog's tags: leave them out
     m4as = [(str(folder.path), str(p)) for p in folder.files if p.suffix.lower() == ".m4a"]
     finished = {t.number for t in tags.read_tracks(m4as)} if m4as else set()
@@ -222,7 +232,13 @@ def remove_stale_outputs(config: Config, all_albums: list, done: set, only: str)
             if album is None or album["name"] in done or not selected(album, only):
                 continue
             stems = {p.stem for p in flacs}
-            keys = {(t.title, t.number) for t in tags.read_tracks([(str(directory), str(p)) for p in flacs])}
+            current = tags.read_tracks([(str(directory), str(p)) for p in flacs])
+            keys = {(t.title, t.number) for t in current}
+            # a finished output carries the catalog's tags, which may differ from the FLAC's: compare it with the
+            # catalog track its FLAC pairs with (a FLAC already deleted pairs with nothing, so its output is kept)
+            current = as_catalog(config, album, current)
+            pairs, _, _ = matching.pair_tracks(album["tracks"], current, "substring", 0.9, 0.85, True)
+            keys |= {(album["tracks"][si].title, album["tracks"][si].number) for _, si in pairs}
             for t in tags.read_tracks([(str(directory), str(p)) for p in m4as]):
                 path = Path(t.path)
                 if path.stem in stems or not media.readable(path) or (t.title and (t.title, t.number) in keys):
