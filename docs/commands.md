@@ -28,7 +28,8 @@ commands write only to the catalog folder and the download folders.
 Give it before the command name.
 
 `-q`, `--quiet`
-: Print warnings and errors only.
+: Print warnings and errors only. Results that a command exists to show (listings, checks, `hist stop`) are
+still printed on standard output; progress lines are not.
 
 `-v`, `--verbose`
 : Print more detail.
@@ -110,7 +111,8 @@ Lines are also written to `state/logs/watch.log`.
 
 ### hist stop
 
-Send SIGTERM to a running `watch` or `convert`. Each finishes the album it is working on, then exits.
+Send SIGTERM to a running `watch` or `convert`. Each finishes the album it is working on, then exits. It prints
+"Nothing is running" when no process holds the lock, or when the recorded process no longer exists.
 
 ### hist dates list | apply | check | script | set | unset [--only TEXT] [--dry-run] [--json]
 
@@ -268,7 +270,9 @@ and DiskNumber cannot be removed; Comment and Encoder are never stored.
 
 With `--json`, `catalog list`, `show`, `edit`, `check`, `dates list`, `check`, `set`, `unset`, `status`, `doctor`
 and `verify` print one JSON document on standard output. An error is printed on standard error as
-`{"error": {"message": ..., "code": ...}}`, with the same exit status as in text mode. Codes: `usage`, `config`,
+`{"error": {"message": ..., "code": ...}}`, with the same exit status as in text mode. A command-line usage error is reported the same way (code `usage`,
+exit status 2) when `--json` is among the arguments. File and input errors (a missing file, a file that is not valid
+JSON or UTF-8) have the code `error`. Codes: `usage`, `config`,
 `catalog`, `dates`, `locked`, `tool`, `platform`, `error`. `agent-help --json` prints the guide as JSON.
 
 ## PLATFORMS
@@ -291,7 +295,7 @@ and `doctor` says to run `hist init` (or to pass `--home` or set `HISTORY_HOME`)
 ## STOPPING
 
 The first Ctrl-C, or `hist stop`, lets `watch` and `convert` finish the album they are working on; while they
-are only waiting, they stop at once. A second Ctrl-C stops at once; files left by an interrupted conversion are
+are only waiting, they stop at once. A second Ctrl-C or SIGTERM stops at once; files left by an interrupted conversion are
 replaced by the next run.
 
 ## ENVIRONMENT

@@ -7,9 +7,10 @@ import os
 import shutil
 import signal
 import sys
+import traceback
 from pathlib import Path
 
-from hist import __version__, agent, catalog, dates, proc, runtime, state
+from hist import agent, catalog, dates, proc, runtime, state
 from hist import config as config_mod
 from hist.errors import HistError
 from hist.log import emit_json, emit_json_error, hint, log, long_running, setup
@@ -24,6 +25,24 @@ def writer_lock(cfg) -> state.Lock:
 
 class UsageError(Exception):
     pass
+
+
+def _version() -> str:
+    from hist import __version__
+
+    return __version__
+
+
+class _Parser(argparse.ArgumentParser):
+    """An ArgumentParser whose usage errors are JSON on standard error when --json is among the arguments."""
+
+    json_requested = False
+
+    def error(self, message: str):
+        if _Parser.json_requested:
+            emit_json_error(message, "usage")
+            raise SystemExit(EXIT_USAGE)
+        super().error(message)
 
 
 # ----------------------------------------------------------------- commands
@@ -115,7 +134,7 @@ def cmd_convert(args, cfg) -> int:
 def cmd_watch(args, cfg) -> int:
     if not args.convert_only:
         proc.require_macos("hist watch (without --convert-only)")
-    from hist import runtime, watch
+    from hist import watch
 
     stopper = runtime.Stopper().install()
     with state.Lock(cfg.state, "convert"):
@@ -126,11 +145,17 @@ def cmd_watch(args, cfg) -> int:
 
 def cmd_stop(args, cfg) -> int:
     pid = state.holder(cfg.state, "convert")
-    if not pid or pid < 0:
-        log.info("Nothing is running.")
+    if not pid:
+        print("Nothing is running.")
         return EXIT_OK
-    os.kill(pid, signal.SIGTERM)
-    log.info(f"Asked hist (pid {pid}) to stop after the current album.")
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except ProcessLookupError:
+        print("Nothing is running.")
+        return EXIT_OK
+    except PermissionError:
+        raise HistError(f"hist (pid {pid}) belongs to another user and cannot be stopped") from None
+    print(f"Asked hist (pid {pid}) to stop after the current album.")
     return EXIT_OK
 
 
@@ -156,7 +181,7 @@ def dates_list(entries: list, root: Path, as_json: bool = False) -> int:
         return EXIT_OK
     for e in entries:
         here = (root / e["path"]).is_dir()
-        log.info(f"{entry_label(e)}: " + ("in the library" if here else "not in the library"))
+        print(f"{entry_label(e)}: " + ("in the library" if here else "not in the library"))
     return EXIT_OK
 
 
@@ -191,8 +216,8 @@ def dates_check(entries: list, root: Path, whole_library: bool, as_json: bool = 
         emit_json({"ok": not wrong, "folders": folders, "files": files, "wrong": wrong, "uncovered": uncovered})
         return EXIT_ERROR if wrong else EXIT_OK
     for w in wrong:
-        log.info(f"  wrong date: {w}")
-    log.info(
+        print(f"  wrong date: {w}")
+    print(
         f"Checked {folders} folders and {files} files: "
         + (f"{len(wrong)} with a wrong date" if wrong else "no mismatches")
     )
@@ -319,6 +344,15 @@ def album_tracks(cfg, args) -> tuple:
     return album, catalog.pick_records(records, album, args.disc, args.track)
 
 
+def folder_of(album: dict, library: Path) -> str:
+    """The folder of an album relative to the library, or as stored when it lies outside the library."""
+    folder = Path(album["tracks"][0].path).parent
+    try:
+        return str(folder.relative_to(library))
+    except ValueError:
+        return str(folder)
+
+
 def catalog_list(args, cfg) -> int:
     found = catalog.albums(cfg)
     if args.json:
@@ -330,7 +364,7 @@ def catalog_list(args, cfg) -> int:
                         "album_artist": a["tracks"][0].tags.get("ItemList:AlbumArtist", ""),
                         "release": a["release"],
                         "tracks": len(a["tracks"]),
-                        "folder": str(Path(a["tracks"][0].path).parent.relative_to(cfg.library)),
+                        "folder": folder_of(a, cfg.library),
                     }
                     for a in found
                 ]
@@ -604,14 +638,14 @@ def cmd_store_entries(args, cfg) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+    parser = _Parser(
         prog="hist",
         description="Rebuild an Apple Music library on macOS from FLAC downloads with exact, verified tags.",
         epilog="Run 'hist <command> --help' for the options of a command. Scripts and AI agents: read commands with "
         "--json, change tags with 'hist catalog edit FILE --dry-run' and then without --dry-run, and run "
         "'hist agent-help' for the guide.",
     )
-    parser.add_argument("--version", action="version", version=f"hist {__version__}")
+    parser.add_argument("--version", action="version", version=f"hist {_version()}")
     parser.add_argument(
         "--home", metavar="DIR", help="catalog folder (default: $HISTORY_HOME or ~/Library/Application Support/HIStory)"
     )
@@ -787,6 +821,7 @@ def fail(args, message: str, code: str, status: int) -> int:
 
 def main(argv=None) -> int:
     parser = build_parser()
+    _Parser.json_requested = "--json" in (sys.argv[1:] if argv is None else list(argv))
     args = parser.parse_args(argv)
     setup(verbose=args.verbose, quiet=args.quiet)
     if not args.command:
@@ -804,7 +839,7 @@ def main(argv=None) -> int:
                 "an existing one with --home DIR or the HISTORY_HOME variable"
             )
         cfg = config_mod.load(home, getattr(args, "source", None) if args.func in (cmd_convert, cmd_watch) else None)
-        if moved := state.migrate_backups(cfg.state):
+        if (moved := state.migrate_backups(cfg.state)) and not getattr(args, "json", False):
             log.info(f"Moved {moved} old backups from state/history and state/snapshots to state/backups")
         return args.func(args, cfg)
     except UsageError as error:
@@ -829,3 +864,7 @@ def main(argv=None) -> int:
         return fail(args, f"{error}; run 'hist doctor'", error.code, EXIT_ERROR)
     except HistError as error:
         return fail(args, str(error), error.code, EXIT_ERROR)
+    except (OSError, ValueError) as error:  # includes JSONDecodeError and UnicodeDecodeError
+        if args.verbose:
+            traceback.print_exc()
+        return fail(args, str(error), "error", EXIT_ERROR)
