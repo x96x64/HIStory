@@ -53,6 +53,18 @@ CI checks the messages of every pull request with commitlint.
 3. Update `docs/commands.md` and the section Unreleased of `CHANGELOG.md` with every change of behavior.
 4. Open a pull request against `main`. CI must pass (ruff, pytest, commitlint) before it is merged.
 
+## Changelog and Release Notes
+
+- The release notes of a version are its `CHANGELOG.md` section, verbatim, followed by a blank line and the line
+  `**Full Changelog**: <compare URL>`, taken from the link reference of that version. `python
+  scripts/release_notes.py X.Y.Z` prints them, and the release workflow uses the same script, so the format is fixed
+  and has one source.
+- Write the notes of each version as completely and in as much detail as possible. Record every user-visible change
+  in its category (Added, Changed, Deprecated, Removed, Fixed, Security), and for a breaking change say what to run
+  to migrate.
+- Once a version is released (tagged), its `CHANGELOG.md` section and its GitHub release notes are never edited
+  again. Put a correction into the notes of a later version.
+
 ## Releases
 
 Maintainers release as described in [docs/releasing.md](docs/releasing.md). In short: bump the version in

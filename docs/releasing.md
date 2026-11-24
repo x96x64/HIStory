@@ -23,6 +23,7 @@ Release. The command is `hist` in both.
 
    ```sh
    python scripts/check_versions.py
+   python scripts/release_notes.py X.Y.Z   # prints the release notes
    .venv/bin/ruff check . && .venv/bin/ruff format --check .
    .venv/bin/python -m pytest -q
    .venv/bin/python -m build
@@ -38,9 +39,22 @@ Release. The command is `hist` in both.
 
 7. The workflow `release.yml` runs on the tag. It checks that the tag, `pyproject.toml`, `npm/package.json` and the
    changelog name the same version, runs the tests on macOS, builds the sdist and wheel, publishes to PyPI with
-   Trusted Publishing, publishes to npm with provenance, and creates the GitHub Release with the changelog section as
-   its notes.
+   Trusted Publishing, publishes to npm with provenance, and creates the GitHub Release with the notes written by
+   `scripts/release_notes.py` (see Release Notes).
 8. Check that `pip install his-story==X.Y.Z` and `npm install -g his-story@X.Y.Z` provide `hist --version`.
+
+## Release Notes
+
+- The release notes are the section of the version in `CHANGELOG.md`, verbatim and without its `## [X.Y.Z]` heading,
+  then a blank line, then `**Full Changelog**: <compare URL>`. The URL is the link reference `[X.Y.Z]: ...` at the
+  bottom of the changelog. The format is fixed; do not write the notes anywhere else.
+- `python scripts/release_notes.py X.Y.Z` prints the notes, and the workflow `release.yml` uses the same script. It
+  fails when the section or its link reference is missing or the section is empty. Run it before you tag.
+- Write the notes of each version as completely and in as much detail as possible: every user-visible change in its
+  category (Added, Changed, Deprecated, Removed, Fixed, Security), and for a breaking change what to run to migrate.
+- Once a version is released (tagged), its `CHANGELOG.md` section and its GitHub release notes are never edited
+  again. Put a correction into the notes of a later version. The release is created with `gh release create`, which
+  fails when the release already exists; do not use `gh release edit` or `--clobber`.
 
 ## If a Release Fails
 

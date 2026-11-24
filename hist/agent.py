@@ -203,6 +203,12 @@ def agents_md(repository: bool = False) -> str:
                     "Wrap the body at 72 characters when the change is not trivial, and explain why.",
                     "Keep each commit to one logical change, and update `docs/commands.md` and `CHANGELOG.md` "
                     "(section Unreleased) with every change of behavior.",
+                    "Release notes are the `CHANGELOG.md` section of the version, verbatim, followed by a "
+                    "`**Full Changelog**: <compare URL>` line; `scripts/release_notes.py VERSION` prints them. "
+                    "Write the notes of each version as completely and in as much detail as possible: every "
+                    "user-visible change in its category, and for a breaking change what to run to migrate.",
+                    "Once a version is released (tagged), its `CHANGELOG.md` section and its GitHub release "
+                    "notes are never edited again; put corrections into the notes of a later version.",
                 ]
             ),
             "## Security Considerations\n",
