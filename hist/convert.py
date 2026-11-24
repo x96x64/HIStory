@@ -144,7 +144,7 @@ def process_file(flac: Path, saved: Track, covers: Path, keep_flac: bool) -> Pat
 
 
 def selected(album: dict, only: str) -> bool:
-    return not only or tags.norm(only) in tags.norm(album["name"])
+    return tags.matches_only(only, album["name"])
 
 
 def album_state(config: Config, album: dict, folders: list, all_albums: list):

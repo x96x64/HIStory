@@ -23,7 +23,7 @@ class EvacuateError(HistError):
 def plan(config: Config, music: MusicApp, only: str) -> list:
     items = []
     for order, album in enumerate(catalog.albums(config), 1):
-        if only and tags.norm(only) not in tags.norm(album["name"]):
+        if not tags.matches_only(only, album["name"]):
             continue
         rows = music.tracks(album["name"])
         if not rows:
