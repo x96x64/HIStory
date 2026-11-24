@@ -132,9 +132,9 @@ class Folder:
 
     @property
     def count(self) -> int:
-        # a folder that holds FLAC files is counted by them: M4A files left from an earlier conversion do not count
-        flacs = [f for f in self.files if f.suffix.lower() == ".flac"]
-        return len({f.stem for f in (flacs or self.files)})
+        # an interrupted conversion leaves the converted tracks as M4A files and the rest as FLAC files, so both count;
+        # a half-written M4A shares its FLAC's name stem and counts once ('hist convert' removes other leftovers first)
+        return len({f.stem for f in self.files})
 
     @property
     def has_flac(self) -> bool:
