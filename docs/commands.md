@@ -166,7 +166,7 @@ file name, every file decodes cleanly, and every album complete. Exits 1 on any 
 
 ### hist catalog \<action\>
 
-Actions: `list`, `show`, `set`, `unset`, `edit`, `cover`, `export`, `add`, `remove`, `check`, `import`.
+Actions: `list`, `show`, `set`, `unset`, `edit`, `cover`, `export`, `add`, `remove`, `undo`, `check`, `import`.
 
 Every action that takes ALBUM accepts `--exact`: ALBUM must then be the full album name. Without it, ALBUM is text
 contained in the name; text that matches several albums is an error that lists them. Every writer takes the
@@ -194,14 +194,26 @@ express are reported as warnings.
 
 `set ALBUM TAG VALUE [--disc N] [--track N] [--exact]`
 : Set a tag on every track of an album, or on one track. TAG may omit the group: `Genre` means `ItemList:Genre`.
-The previous `tracks.json` is kept in `state/backups/`.
+Known tag names are matched ignoring case (`genre` is `ItemList:Genre`). The value is checked exactly like an
+operation of `edit` (for example TrackNumber must look like `3 of 12`, and the result must not give two tracks the
+same album, disc and track). The previous `tracks.json` is kept in `state/backups/`.
 
 `unset ALBUM TAG [--disc N] [--track N] [--exact]`
 : Remove a tag. Title, Album, AlbumArtist, Artist, TrackNumber and DiskNumber cannot be removed.
 
 `add SPEC --from DIR [--dry-run]`
 : Add an album from a spec file and the folder of its downloaded FLAC files. The spec file can be kept anywhere;
-see docs/catalog-format.md.
+see docs/catalog-format.md. The spec is rejected when two tracks have the same disc and track number, a disc is
+higher than `discs`, `release` is not a real date written `YYYY-MM-DD`, or the catalog already has an album of the
+same name by a different album artist (run `remove` first to replace it). An album of the same name and artist is
+replaced.
+
+`undo [--dry-run] [--json]`
+: Restore `tracks.json` and `dates.json` from the newest folder of `state/backups/` that holds one of them (a
+backup of `retag` is not used), and put back the covers of that folder that are missing from `covers/`. The files
+it replaces are kept first in a new backup folder `<time>-catalog-undo`, so a second `undo` redoes the change. It
+holds the catalog lock. `state/added.json` and `state/converted.json` are not restored. The library files keep their
+tags until `hist retag`. With `--dry-run`, show what would be restored.
 
 `remove ALBUM [--dry-run] [--exact]`
 : Remove an album from the catalog folder after you have removed it from the Music app: its tracks, its
@@ -211,7 +223,8 @@ deleted file is kept in one folder of `state/backups/` first. The library folder
 `--dry-run`, show what would be removed.
 
 `check [--json]`
-: Check the catalog files for consistency; exits 1 on any problem.
+: Check the catalog files for consistency; exits 1 on any problem. A `tracks.json` that is not valid JSON or has
+malformed records is reported as a problem, not as a crash.
 
 `import FOLDER`
 : Start an empty catalog from the tags of the M4A files under an existing library folder, dropping Comment and

@@ -51,27 +51,30 @@ def check_record(record: object, where: str) -> None:
         raise CatalogError(f"{where}: 'blobs' must be an object of lists of digests")
 
 
-def read_records(config: Config) -> list[dict]:
-    """The records of tracks.json; raises CatalogError when the file is not valid JSON or is malformed."""
-    if not config.tracks_file.exists():
-        return []
+def parse_records(path: Path) -> list[dict]:
+    """The records of a tracks.json file; raises CatalogError when it is not valid JSON or is malformed."""
     try:
-        data = json.loads(config.tracks_file.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, UnicodeDecodeError) as error:
-        raise CatalogError(f"{config.tracks_file} is not valid JSON: {error}") from None
+        raise CatalogError(f"{path} is not valid JSON: {error}") from None
     if not isinstance(data, dict):
-        raise CatalogError(f"{config.tracks_file}: the top level must be an object (see docs/catalog-format.md)")
+        raise CatalogError(f"{path}: the top level must be an object (see docs/catalog-format.md)")
     if data.get("format") != FORMAT:
         raise CatalogError(
-            f"{config.tracks_file}: unsupported format {data.get('format')!r}; "
+            f"{path}: unsupported format {data.get('format')!r}; "
             f"hist reads format {FORMAT} (see docs/catalog-format.md)"
         )
     records = data.get("tracks")
     if not isinstance(records, list):
-        raise CatalogError(f"{config.tracks_file}: 'tracks' must be a list")
+        raise CatalogError(f"{path}: 'tracks' must be a list")
     for number, record in enumerate(records, 1):
-        check_record(record, f"{config.tracks_file.name}: track {number}")
+        check_record(record, f"{path.name}: track {number}")
     return records
+
+
+def read_records(config: Config) -> list[dict]:
+    """The records of tracks.json (none when the file does not exist); see parse_records."""
+    return parse_records(config.tracks_file) if config.tracks_file.exists() else []
 
 
 def write_records(config: Config, records: list[dict], backup: state.Backup) -> None:
@@ -242,6 +245,58 @@ def remove_album(config: Config, album_text: str, dry_run: bool = False, exact: 
         state.added(config.state).remove(album)
         state.converted(config.state).remove(album)
     return {"album": album, "tracks": len(gone), "dates": dates_removed, "covers": covers}
+
+
+BACKUP_NAME = re.compile(r"^(\d{8}-\d{6})-(catalog|dates)")
+
+
+def latest_backup(config: Config) -> Path | None:
+    """The newest folder of state/backups that holds a tracks.json or a dates.json, or None."""
+    folders = [
+        d
+        for d in (config.state / "backups").glob("*")
+        if d.is_dir() and BACKUP_NAME.match(d.name) and ((d / "tracks.json").is_file() or (d / "dates.json").is_file())
+    ]
+    return max(folders, key=lambda d: (d.name[:15], d.stat().st_mtime_ns), default=None)
+
+
+def undo(config: Config, dry_run: bool = False) -> dict:
+    """Restore the files of the newest backup of the catalog or of dates.json (the caller holds the lock).
+
+    The current tracks.json and dates.json that are replaced are kept first in a new backup folder, so that a
+    second undo restores them again. Covers of the backup that are missing from covers/ are put back. Returns
+    {"from", "restored", "covers", "backup"}.
+    """
+    source = latest_backup(config)
+    if source is None:
+        raise CatalogError("there is no backup of the catalog in state/backups to restore")
+    names = [n for n in ("tracks.json", "dates.json") if (source / n).is_file()]
+    if "tracks.json" in names:
+        parse_records(source / "tracks.json")
+    if "dates.json" in names:
+        try:
+            state.read_json(source / "dates.json", {})
+        except ValueError as error:
+            raise CatalogError(f"{source / 'dates.json'} is not valid JSON: {error}") from None
+    cover_dir = source / "covers"
+    covers = (
+        sorted(c.name for c in cover_dir.iterdir() if not (config.covers / c.name).exists())
+        if cover_dir.is_dir()
+        else []
+    )
+    report = {"from": source.name, "restored": names, "covers": covers, "backup": None, "dry_run": dry_run}
+    if dry_run:
+        return report
+    backup = state.Backup(config.state, "catalog-undo")
+    for name in names:
+        target = config.home / name
+        backup.keep(target)
+    for digest in covers:
+        state.write_bytes(config.covers / digest, (cover_dir / digest).read_bytes())
+    for name in names:
+        state.write_bytes(config.home / name, (source / name).read_bytes())
+    report["backup"] = str(backup.path) if backup.path else None
+    return report
 
 
 # -------------------------------------------------------------- spec files

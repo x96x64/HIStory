@@ -60,6 +60,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - The conversion decodes each new M4A file once instead of twice; the second check ran after a rename that does not
   change the content.
+### Added
+
+- `hist catalog undo [--dry-run] [--json]` restores `tracks.json` and `dates.json` (and covers that are missing)
+  from the newest backup in `state/backups/`. It first keeps the files it replaces in a new backup, so a second
+  `undo` redoes the change. It holds the catalog lock. It is listed in `docs/commands.md` and in the agent guide.
+
+### Fixed
+
+- `hist catalog set` and `hist catalog unset` now apply the checks of `hist catalog edit`. Before, `catalog set
+  ALBUM TrackNumber abc` stored a value that later crashed the commands that read the track number.
+- A `tracks.json` that is not valid JSON, or has malformed tracks, is reported as a catalog error instead of a
+  traceback, and `hist catalog check` lists it as a problem. Records without an album name or with a track number
+  that is not a number no longer crash album selection and the check.
+- `hist catalog add` rejects a spec with duplicate disc and track pairs, a disc above `discs`, a release that is
+  not a real `YYYY-MM-DD` date, or an album name that the catalog already uses for a different album artist (it
+  used to replace that album silently).
+- Tag names are matched ignoring case against the known spellings, so `catalog set ALBUM genre Soul` sets
+  `ItemList:Genre` instead of creating `ItemList:genre`.
+- `tracks.json`, `dates.json`, the progress files and covers are written to a temporary file in the same folder,
+  synced to disk and renamed, so a crash cannot leave a truncated file. Covers used to be written in place.
+
+### Changed
+
+- `hist catalog edit` finds the tracks of an operation with an index, which is faster for large albums.
 
 ## [2.4.3] - 2026-11-24
 

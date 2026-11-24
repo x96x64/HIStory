@@ -60,6 +60,10 @@ GUIDE = {
             "command": "hist catalog export ALBUM [-o FILE] [--exact]",
             "does": "write the album as a spec file that 'catalog add' accepts",
         },
+        {
+            "command": "hist catalog undo [--dry-run] [--json]",
+            "does": "restore the newest backup of tracks.json and dates.json; a second undo redoes it",
+        },
         {"command": "hist catalog check [--json]", "does": "check the catalog for problems; exit 1 if any"},
         {"command": "hist dates list [--json]", "does": "list the entries of dates.json"},
         {
@@ -248,9 +252,9 @@ def agents_md(repository: bool = False) -> str:
                 ]
             ),
             "## Recovering from Backups\n",
-            "Each change keeps the files it replaced in `state/backups/<time>-<command>/`. To undo a change, copy "
-            "`tracks.json` or `dates.json` from that folder back into this folder, then run "
-            "`hist catalog check`.\n",
+            "Each change keeps the files it replaced in `state/backups/<time>-<command>/`. To undo the latest change "
+            "run `hist catalog undo`; to go back further, copy `tracks.json` or `dates.json` from a folder back into "
+            "this folder. Then run `hist catalog check`.\n",
         ]
     return "\n".join(out)
 
