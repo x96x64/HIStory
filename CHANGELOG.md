@@ -56,6 +56,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `hist verify` and the library follower identify an album by its name and its artist, not by its name alone, and
   `hist verify` no longer rebuilds a set for every track, so it is fast on a large library.
 
+### Changed
+
+- The conversion decodes each new M4A file once instead of twice; the second check ran after a rename that does not
+  change the content.
+
 ## [2.4.3] - 2026-11-24
 
 This release changes only how the npm package is published. It is the first release published to npm with Trusted
