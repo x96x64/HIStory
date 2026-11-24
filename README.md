@@ -3,10 +3,10 @@
 HIStory (`hist`) rebuilds an Apple Music library on macOS from FLAC downloads, so that every track ends up as an Apple Lossless (ALAC) file whose tags and cover art are exactly the ones recorded in a catalog you control.
 
 [![CI](https://github.com/x96x64/HIStory/actions/workflows/ci.yml/badge.svg)](https://github.com/x96x64/HIStory/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/his-story.svg)](https://pypi.org/project/his-story/)
-[![npm](https://img.shields.io/npm/v/@x96x64/his-story.svg)](https://www.npmjs.com/package/@x96x64/his-story)
-[![Python versions](https://img.shields.io/pypi/pyversions/his-story.svg)](https://pypi.org/project/his-story/)
-[![License](https://img.shields.io/github/license/x96x64/HIStory.svg)](https://github.com/x96x64/HIStory/blob/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/his-story)](https://pypi.org/project/his-story/)
+[![npm](https://img.shields.io/npm/v/@x96x64/his-story)](https://www.npmjs.com/package/@x96x64/his-story)
+[![Python versions](https://img.shields.io/pypi/pyversions/his-story)](https://pypi.org/project/his-story/)
+[![License](https://img.shields.io/github/license/x96x64/HIStory)](https://github.com/x96x64/HIStory/blob/main/LICENSE)
 
 ## Overview
 
