@@ -56,7 +56,9 @@ class Follower:
         progress = state.added(cfg.state)
         recorded = progress.load()
         folders = album_folders(cfg.library)
-        by_name = {a["name"]: a for a in catalog.albums(cfg)}
+        all_albums = catalog.albums(cfg)
+        by_name = {a["name"]: a for a in all_albums}
+        by_key = {a["key"]: a for a in all_albums}
 
         def folder_of(name: str, info: dict) -> str | None:
             if info.get("folder"):
@@ -83,8 +85,8 @@ class Follower:
             if time.time() - before[1] < SETTLE_SECONDS:
                 continue
             found = tags.read_tracks([(str(cfg.library / rel), str(f)) for f in files if f.suffix.lower() == ".m4a"])
-            names = {tags.pick(t.tags, "album") for t in found}
-            album = by_name.get(names.pop()) if len(names) == 1 else None
+            keys = {(t.album, t.artist) for t in found}
+            album = by_key.get(keys.pop()) if len(keys) == 1 else None
             if album is None or album["name"] in recorded:
                 if rel not in self.told:
                     log.debug(f"{rel} is not an album of the catalog (or already recorded); left alone")

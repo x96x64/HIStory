@@ -53,6 +53,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   step, so a scan of the download folders never takes an unfinished file for an album.
 - The cleanup of M4A files left by an interrupted run finds FLAC and M4A files whose suffix is in upper case (for
   example `.FLAC`), skips hidden files, and no longer fails on a folder without FLAC files.
+- `hist verify` and the library follower identify an album by its name and its artist, not by its name alone, and
+  `hist verify` no longer rebuilds a set for every track, so it is fast on a large library.
 
 ## [2.4.3] - 2026-11-24
 

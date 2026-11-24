@@ -9,7 +9,7 @@ import threading
 import pytest
 from conftest import needs_setfile, needs_tools, spec
 
-from hist import convert, library, runtime, state, watch
+from hist import convert, library, matching, runtime, state, watch
 
 pytestmark = needs_tools
 
@@ -123,3 +123,19 @@ def test_watch_ends_at_once_when_everything_is_already_in_the_library(env, quick
     for f in env.downloads.rglob("*.m4a"):
         f.unlink()
     assert watch.run(env.config(), convert.Options(), runtime.Stopper(), interval=0.1) == 0
+
+
+def test_verify_passes_for_converted_albums_and_flags_a_foreign_file(env, monkeypatch):
+    from hist import verify
+
+    monkeypatch.setattr(matching, "SETTLE_SECONDS", 0)
+    prepared(env)
+    assert verify.run(env.config(), [env.downloads], False, False, None) == 0
+    stray = env.downloads / "Other" / "Alpha"
+    stray.mkdir(parents=True)
+    for f in (env.downloads / "Band" / "Alpha").glob("*.m4a"):
+        shutil.copy2(f, stray / f.name)
+        subprocess.run(
+            ["exiftool", "-q", "-overwrite_original", "-ItemList:AlbumArtist=Other", str(stray / f.name)], check=True
+        )
+    assert verify.run(env.config(), [env.downloads], False, False, None) == 1
