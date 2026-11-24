@@ -6,12 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.4.3] - 2026-11-24
+
+This release changes only how the npm package is published. It is the first release published to npm with Trusted
+Publishing. The Python package, the command and its behavior are unchanged from 2.4.2.
+
 ### Changed
 
 - The release workflow publishes the npm package `@x96x64/his-story` with npm Trusted Publishing (OpenID Connect)
   instead of the access token in the repository secret `NPM_TOKEN`. The `publish-npm` job uses Node.js 24 and the
   latest npm, and npm attaches a provenance statement to every release again now that the repository is public.
 - `docs/releasing.md` describes the trusted publisher to set up on npmjs.com instead of the npm token.
+- The repository `x96x64/HIStory` is public, and a ruleset protects the branch `main` against deletion and force
+  pushes.
+
+### Migration
+
+- No migration is needed for the catalog, the configuration or the library.
+- Upgrade with `npm install -g @x96x64/his-story@latest`, `pip install --upgrade his-story` or
+  `pipx upgrade his-story`.
+- The npm package page lists a provenance statement that links the package to the release workflow run of this tag.
 
 ## [2.4.2] - 2026-11-24
 
@@ -248,7 +262,8 @@ This release contains breaking changes; see the migration steps below.
 - Safe stopping (first Ctrl-C or `hist stop` finishes the current album), locks against concurrent runs, and
   log files under `state/logs/`.
 
-[Unreleased]: https://github.com/x96x64/HIStory/compare/v2.4.2...HEAD
+[Unreleased]: https://github.com/x96x64/HIStory/compare/v2.4.3...HEAD
+[2.4.3]: https://github.com/x96x64/HIStory/compare/v2.4.2...v2.4.3
 [2.4.2]: https://github.com/x96x64/HIStory/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/x96x64/HIStory/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/x96x64/HIStory/compare/v2.3.0...v2.4.0
