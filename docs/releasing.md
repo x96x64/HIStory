@@ -18,6 +18,8 @@ This document is for maintainers. A release publishes the package `his-story` to
 1. Make sure `main` is green in CI and the section Unreleased of `CHANGELOG.md` lists every change.
 2. Choose the version `X.Y.Z` following [Semantic Versioning](https://semver.org/).
 3. Set the version in `pyproject.toml` and in `npm/package.json`.
+   If the supported Python versions changed, also update the classifiers in `pyproject.toml` and the Python
+   badge in `README.md`, which is a static badge so that it never depends on a slow upstream request.
 4. In `CHANGELOG.md`, rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD`, add an empty `## [Unreleased]` above
    it, and update the comparison links at the bottom.
 5. Run the checks:
