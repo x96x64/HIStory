@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `hist catalog undo [--dry-run] [--json]` restores `tracks.json` and `dates.json` (and covers that are missing)
+  from the newest backup in `state/backups/`. It first keeps the files it replaces in a new backup, so a second
+  `undo` redoes the change. It holds the catalog lock. It is listed in `docs/commands.md` and in the agent guide.
+
+### Changed
+
+- With `-q`, the listing of `hist dates list`, the result of `hist dates check` and the messages of `hist stop` are
+  still printed on standard output.
+- Starting `hist` is faster because the package version is read only when it is needed (`hist --version`).
+- `config.toml` is validated strictly: an unknown section or key, a value of the wrong type (such as a text for
+  `downloads` or `min_free_gb`) and a negative `min_free_gb` are configuration errors (exit status 2, code
+  `config`). Earlier versions iterated a text `downloads` character by character.
+- The `publish-npm` job of the release workflow waits for `publish-pypi`, so that npm never receives a version that
+  failed on PyPI.
+- The conversion decodes each new M4A file once instead of twice; the second check ran after a rename that does not
+  change the content.
+- `hist catalog edit` finds the tracks of an operation with an index, which is faster for large albums.
+
 ### Fixed
 
 - `hist convert` and `hist watch` resume an album whose conversion was interrupted. Before, the tracks that were
@@ -23,22 +43,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `hist catalog list --json` no longer fails for an album whose files are outside the library folder.
 - `hist stop` and the other commands that look for the running process only read the lock file; they no longer take
   the lock for a moment, which could make a concurrent writer fail with the code `locked`.
-
-### Changed
-
-- With `-q`, the listing of `hist dates list`, the result of `hist dates check` and the messages of `hist stop` are
-  still printed on standard output.
-- Starting `hist` is faster because the package version is read only when it is needed (`hist --version`).
-### Changed
-
-- `config.toml` is validated strictly: an unknown section or key, a value of the wrong type (such as a text for
-  `downloads` or `min_free_gb`) and a negative `min_free_gb` are configuration errors (exit status 2, code
-  `config`). Earlier versions iterated a text `downloads` character by character.
-- The `publish-npm` job of the release workflow waits for `publish-pypi`, so that npm never receives a version that
-  failed on PyPI.
-
-### Fixed
-
 - A malformed `dates.json` (invalid JSON, wrong structure, an invalid date, or a date before 1970) is reported as a
   dates error with a clear message instead of a raw exception. Dates before 1970 are now refused when they are
   read or set, not only when they are applied.
@@ -55,19 +59,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   example `.FLAC`), skips hidden files, and no longer fails on a folder without FLAC files.
 - `hist verify` and the library follower identify an album by its name and its artist, not by its name alone, and
   `hist verify` no longer rebuilds a set for every track, so it is fast on a large library.
-
-### Changed
-
-- The conversion decodes each new M4A file once instead of twice; the second check ran after a rename that does not
-  change the content.
-### Added
-
-- `hist catalog undo [--dry-run] [--json]` restores `tracks.json` and `dates.json` (and covers that are missing)
-  from the newest backup in `state/backups/`. It first keeps the files it replaces in a new backup, so a second
-  `undo` redoes the change. It holds the catalog lock. It is listed in `docs/commands.md` and in the agent guide.
-
-### Fixed
-
 - `hist catalog set` and `hist catalog unset` now apply the checks of `hist catalog edit`. Before, `catalog set
   ALBUM TrackNumber abc` stored a value that later crashed the commands that read the track number.
 - A `tracks.json` that is not valid JSON, or has malformed tracks, is reported as a catalog error instead of a
@@ -80,10 +71,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `ItemList:Genre` instead of creating `ItemList:genre`.
 - `tracks.json`, `dates.json`, the progress files and covers are written to a temporary file in the same folder,
   synced to disk and renamed, so a crash cannot leave a truncated file. Covers used to be written in place.
-
-### Changed
-
-- `hist catalog edit` finds the tracks of an operation with an index, which is faster for large albums.
 
 ## [2.4.3] - 2026-11-24
 
