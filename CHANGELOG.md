@@ -8,52 +8,75 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [2.4.0] - 2026-11-24
 
+This release adds machine-readable output and batch editing for scripts and AI agents, renames the distribution to
+`his-story`, and adds an npm package.
+
 ### Added
 
-- `--json` output for `catalog list`, `show`, `edit` and `check`, `dates list` and `check`, `status`, `doctor` and
-  `verify`. With `--json` an error is printed as `{"error": {"message", "code"}}` on standard error; the exit codes
-  are unchanged.
-- `hist catalog edit [FILE|-] [--dry-run] [--retag]`: a batch of `set` and `unset` operations, checked first and
-  written once, with one backup.
-- `hist catalog cover`, `hist catalog export`, `hist dates set` and `hist dates unset`.
-- `--exact` for the commands that take an album name.
-- `hist agent-help [--json]`, an `AGENTS.md` and `CLAUDE.md` in the repository, and the same two files written into
-  the catalog folder by `hist init`.
-- Every writer of `tracks.json` and `dates.json` takes the "catalog" lock.
-
+- `--json` output for `hist catalog list`, `catalog show`, `catalog edit`, `catalog check`, `dates list`,
+  `dates check`, `dates set`, `dates unset`, `status`, `doctor` and `verify`. The output is one JSON document on
+  standard output. With `--json` an error is printed on standard error as `{"error": {"message": ..., "code": ...}}`
+  with the same exit status as in text mode. The codes are `usage`, `config`, `catalog`, `dates`, `locked`, `tool`,
+  `platform` and `error`.
+- `hist catalog edit [FILE|-] [--dry-run] [--retag] [--exact]`: applies a JSON array of `set` and `unset`
+  operations read from FILE or standard input. Every operation is checked first, one error rejects the whole batch,
+  and the result is written once with one backup. `--dry-run` prints the changes only, and `--retag` then runs
+  `hist retag --apply` on the changed albums. It fails at once when standard input is a terminal.
+- `hist catalog cover ALBUM IMAGE`: makes a JPEG or PNG the cover of every track of an album.
+- `hist catalog export ALBUM [-o FILE]`: writes an album as a spec file that `hist catalog add` accepts. Tags that a
+  spec cannot express are reported as warnings.
+- `hist dates set PATH DATE [--kind album|artist]` and `hist dates unset PATH`: change `dates.json` without editing
+  it by hand. Each keeps a backup.
+- `--exact` for the commands that take an album name: the name must then be the full album name. Without it, text
+  that matches several albums is an error that lists them.
+- `hist agent-help [--json]`: prints the guide for AI agents and scripts. It works without a catalog.
+- `AGENTS.md` and `CLAUDE.md` in the repository, and the same two files written into the catalog folder by
+  `hist init`. Existing files are never overwritten.
+- A "catalog" lock taken by every writer of `tracks.json` and `dates.json`; a second writer fails at once with the
+  error code `locked`.
+- After a change to the catalog, a line `hist: next: ...` on standard error names the command to run next, for
+  example `hist retag`. `--quiet` hides it.
 - The npm package `his-story`: a thin wrapper that runs the Python package with `python3`. Set `HIST_PYTHON` to
-  choose the interpreter.
-- `python -m hist`, and `hist.__version__` read from the installed package metadata.
+  choose another interpreter.
+- `python -m hist`, and `hist.__version__` read from the installed `his-story` metadata. For a copy that is not
+  installed it falls back to `package.json` or `pyproject.toml`.
+- `scripts/check_versions.py`, which checks that the versions of `pyproject.toml`, `npm/package.json` and the
+  release tag agree.
 - Continuous integration on GitHub (ruff, pytest, Conventional Commits), a release workflow that publishes to PyPI
-  and npm, issue and pull request templates, and Dependabot.
+  and npm and creates the GitHub release, issue and pull request templates, and Dependabot.
 - `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `docs/releasing.md`, `.editorconfig`,
-  `.pre-commit-config.yaml` and `scripts/check_versions.py`.
-- The `dev` extra (`pip install -e '.[dev]'`), the `py.typed` marker, project URLs and more classifiers.
+  `.pre-commit-config.yaml` and `commitlint.config.mjs`.
+- The `dev` extra (`pip install -e '.[dev]'`), the `py.typed` marker, project URLs and more package classifiers.
 
 ### Changed
 
-- The distribution is named `his-story` on PyPI and npm; the command and the Python package are still `hist`.
-  Remove the old installation with `pipx uninstall hist` before `pipx install his-story`.
-- The code is formatted and checked with ruff.
-- The maintainer's personal workflow notes moved out of the repository; `docs/releasing.md` describes the release
+- The distribution is named `his-story` on PyPI and npm instead of `hist`. The command and the Python package are
+  still `hist`. To migrate, run `pipx uninstall hist` and then `pipx install his-story`.
+- `hist init` writes a complete, commented `config.toml` and asks no question.
+- Errors say what to run next. `hist catalog set` and `edit` print the `hist retag` command to run.
+- A missing external tool is reported with the command that installs it, for example `brew install ffmpeg`.
+- Commands that need macOS (the Music app, `osascript` or `SetFile`: `status --music`, `verify --music`, `refresh`,
+  `evacuate`, `store-entries`, `watch`, and `dates apply` and `dates check` when there are entries) fail at once on
+  other systems with a message that says so. The catalog commands work everywhere.
+- Without a catalog, every command except `init`, `agent-help` and `doctor` says to run `hist init`, or to pass
+  `--home` or set `HISTORY_HOME`.
+- The code is formatted and checked with ruff. This does not change behavior.
+- The maintainer's workspace notes moved out of the repository; `docs/releasing.md` describes the release
   procedure.
-- Errors say what to run next; `catalog set` and `edit` print the `hist retag` command to run.
-- `hist init` writes a complete, commented `config.toml`.
-- Commands that need macOS (Music app, `osascript`, `SetFile`) fail at once on other systems; a missing external
-  tool is reported with the command that installs it. Without a catalog, commands say to run `hist init`.
 
 ## [2.3.0] - 2026-11-10
 
 ### Changed
 
 - The distribution name is `hist`, the same as the command and the Python package, instead of `history-music`.
-  Remove the old installation with `pipx uninstall history-music` before `pipx install ./HIStory`.
-- HIStory is kept locally and installed from its folder.
+  To migrate, run `pipx uninstall history-music` and then install the new distribution, for example
+  `pipx install ./HIStory` from the project folder.
+- The README no longer says to clone a repository: HIStory is installed from its folder.
 
 ### Removed
 
-- The online test workflow, the README badges and the project URLs. Run the tests locally with
-  `python -m pytest`.
+- The GitHub Actions test workflow, the README badges and the repository and issue URLs in the package metadata.
+  Run the tests locally with `python -m pytest`.
 
 ## [2.2.0] - 2026-11-10
 
@@ -64,48 +87,79 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `tracks.json`, `dates.json` and removed covers for `hist catalog set`, `unset`, `add`, `remove` and `import`,
   and the files' current tags for `hist retag --apply`.
 - The first `hist` command after the update moves the copies in `state/history/` and the folders in
-  `state/snapshots/` into `state/backups/`, and removes the old folders when they are empty.
+  `state/snapshots/` into `state/backups/`, and removes the old folders when they are empty. No action is needed.
 
 ## [2.1.0] - 2026-11-10
 
 ### Changed
 
 - The Python package is named `hist`, after the command, instead of `history_music`; `python -m hist` runs the
-  command. The command and the distribution name `history-music` are unchanged.
-- The package metadata, the command line help and `docs/commands.md` describe the project with one shared sentence.
+  command instead of `python -m history_music`. Code that imports
+  `history_music` must import `hist` instead. The command and the distribution name `history-music` are unchanged.
+- The package metadata, the command line help, the module docstring and `docs/commands.md` describe the project
+  with one shared sentence.
 
 ## [2.0.0] - 2026-11-10
+
+This release contains breaking changes; see the migration steps below.
 
 ### Changed
 
 - A relative `cover` in a spec file is taken relative to the spec file's folder instead of the catalog folder.
+  To migrate, make the paths in your spec files relative to the spec file's folder, or absolute.
+- `hist catalog remove` no longer reports or deletes specs, and `hist init --from DIR` no longer copies a `specs/`
+  folder.
 
 ### Removed
 
 - The `specs/` folder of the catalog. `hist watch` no longer adds albums from it, and `hist init`,
-  `hist doctor` and `hist catalog check` no longer look for it. Add a new album with
-  `hist catalog add SPEC --from DIR`; the spec file can be kept anywhere.
+  `hist doctor` and `hist catalog check` no longer look for it. A spec file is now only the input of
+  `hist catalog add` and can be kept anywhere. To migrate, move the files out of `specs/` (an existing `specs/`
+  folder is left in place and ignored), add each album that is not yet in the catalog with
+  `hist catalog add SPEC --from DIR` once its download is complete, and run `hist catalog check`.
 
-## [1.2.0] - 2026-11-10
+## [1.3.0] - 2026-11-10
 
 ### Changed
 
-- `hist verify` reads metadata atoms and store purchase data for up to 40 files per exiftool run instead of one
-  file per run, which makes it several times faster on a full library.
-- Build output is no longer kept in the project.
-- The license's copyright line uses the sign ©.
+- `hist watch` and `hist catalog add` move the spec of every album that is in the catalog from `specs/` to
+  `state/history/`, so that `specs/` holds only albums that are still to be added. Each move is logged as
+  `Moved specs/NAME to state/history: its album is in the catalog`.
+
+## [1.2.0] - 2026-11-10
+
+### Added
+
+- A GitHub Actions workflow that runs pyflakes and the tests on macOS for every push to `main` and every pull
+  request, on the oldest supported Python and the newest release.
+- README badges for the test status, the latest release, the supported Python versions, the platform and the
+  license.
+- The authors in `pyproject.toml`, and the repository and issue URLs in the package metadata. The repository name
+  is written `HIStory`.
+
+### Changed
+
+- `hist verify` reads metadata atoms and store purchase data for up to 40 files per exiftool run instead of two
+  runs per file, with the same results. On a library of 442 files `hist verify --no-decode` takes about 14 seconds
+  instead of about 66.
+- The README says to install from a clone of the GitHub repository instead of an unpacked ZIP file, and build output
+  is no longer kept in the repository.
+- The license's copyright line uses the sign © instead of "(c)".
 
 ### Removed
 
 - Migration of state files from the tool that preceded 1.0.0 (`registered.json`, progress files stored as lists).
+  A state folder that still holds these files must be converted with 1.1.0 or earlier first.
 
 ## [1.1.0] - 2026-11-10
 
 ### Added
 
 - `hist catalog remove ALBUM [--dry-run]`: removes an album you removed from the Music app from the catalog
-  folder, with its `dates.json` entries, progress records, spec and unused covers. The previous files are kept in
-  `state/history/`.
+  folder, with its `dates.json` entries (and its artist's entry when no other album of that artist is left), its
+  progress records, its spec and the covers that nothing else uses. Every changed or deleted file is kept in
+  `state/history/` first. The library folder and the Music app are not touched. With `--dry-run` it shows what
+  would be removed.
 
 ### Changed
 
@@ -114,7 +168,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- `hist doctor` reports a `tracks.json` that is not valid JSON instead of stopping with a traceback.
+- `hist doctor` reports a `tracks.json` that is not valid JSON, as a list of problems, instead of stopping with a
+  traceback.
 
 ## [1.0.0] - 2026-11-10
 
@@ -140,7 +195,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 [2.3.0]: https://github.com/x96x64/HIStory/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/x96x64/HIStory/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/x96x64/HIStory/compare/v2.0.0...v2.1.0
-[2.0.0]: https://github.com/x96x64/HIStory/compare/v1.2.0...v2.0.0
+[2.0.0]: https://github.com/x96x64/HIStory/compare/v1.3.0...v2.0.0
+[1.3.0]: https://github.com/x96x64/HIStory/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/x96x64/HIStory/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/x96x64/HIStory/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/x96x64/HIStory/releases/tag/v1.0.0
