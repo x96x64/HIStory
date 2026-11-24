@@ -31,25 +31,25 @@ def duration(path: Path) -> float:
     return float(out) if out else -1.0
 
 
+def md5_of(path: Path, *args: str) -> str:
+    """The MD5 that ffmpeg prints for the stream selection and codec options in args (empty on failure)."""
+    return proc.run(
+        ["ffmpeg", "-v", "error", "-nostdin", "-i", path, *args, "-f", "md5", "-"], text=True
+    ).stdout.strip()
+
+
 def pcm_md5(path: Path) -> str:
     """Hash of the decoded audio (32-bit PCM), so a FLAC and its ALAC copy can be compared sample by sample."""
-    return proc.run(
-        ["ffmpeg", "-v", "error", "-nostdin", "-i", path, "-map", "0:a:0", "-c:a", "pcm_s32le", "-f", "md5", "-"],
-        text=True,
-    ).stdout.strip()
+    return md5_of(path, "-map", "0:a:0", "-c:a", "pcm_s32le")
 
 
 def audio_md5(path: Path) -> str:
-    return proc.run(
-        ["ffmpeg", "-v", "error", "-nostdin", "-i", path, "-map", "0:a", "-f", "md5", "-"], text=True
-    ).stdout.strip()
+    return md5_of(path, "-map", "0:a")
 
 
 def audio_packets(path: Path) -> str:
     """Hash of the encoded audio packets, unchanged by a container rebuild."""
-    return proc.run(
-        ["ffmpeg", "-v", "error", "-nostdin", "-i", path, "-map", "0:a", "-c", "copy", "-f", "md5", "-"], text=True
-    ).stdout.strip()
+    return md5_of(path, "-map", "0:a", "-c", "copy")
 
 
 def decodes_cleanly(path: Path) -> bool:
