@@ -111,6 +111,52 @@ class Config:
         return self.staging / self.store_file if self.store_file else None
 
 
+KEYS = {
+    "paths": {"downloads", "library", "auto_add", "evacuation"},
+    "convert": {"min_free_gb"},
+    "store": {"album", "file"},
+    "match": {"aliases", "renumber"},
+}
+
+
+def check_shape(data: dict) -> None:
+    """Raise ConfigError for an unknown section or key, or a value of the wrong type."""
+    for section, keys in data.items():
+        if section not in KEYS:
+            raise ConfigError(f"config.toml: unknown section [{section}]; known: {', '.join(sorted(KEYS))}")
+        if not isinstance(keys, dict):
+            raise ConfigError(f"config.toml: '{section}' must be a section [{section}]")
+        for key in keys:
+            if key not in KEYS[section]:
+                raise ConfigError(
+                    f"config.toml: unknown key '{key}' in [{section}]; known: {', '.join(sorted(KEYS[section]))}"
+                )
+    paths, store, match = (data.get(k, {}) for k in ("paths", "store", "match"))
+    downloads = paths.get("downloads", [])
+    if not isinstance(downloads, list) or not all(isinstance(d, str) for d in downloads):
+        raise ConfigError("config.toml: [paths] downloads must be a list of folder names")
+    for key in ("library", "auto_add", "evacuation"):
+        if key in paths and not isinstance(paths[key], str):
+            raise ConfigError(f"config.toml: [paths] {key} must be a text")
+    free = data.get("convert", {}).get("min_free_gb", 10)
+    if isinstance(free, bool) or not isinstance(free, (int, float)) or free < 0:
+        raise ConfigError("config.toml: [convert] min_free_gb must be a number of at least 0")
+    for key in ("album", "file"):
+        if key in store and not isinstance(store[key], str):
+            raise ConfigError(f"config.toml: [store] {key} must be a text")
+    aliases = match.get("aliases", {})
+    if not isinstance(aliases, dict) or not all(isinstance(v, str) for v in aliases.values()):
+        raise ConfigError("config.toml: [match.aliases] must map album names to texts")
+    renumber = match.get("renumber", {})
+    if not isinstance(renumber, dict):
+        raise ConfigError("config.toml: [match.renumber] must hold one table per album")
+    for album, rule in renumber.items():
+        if isinstance(rule, dict) and any(
+            isinstance(rule.get(k), bool) or not isinstance(rule.get(k, 0), int) for k in ("disc", "offset")
+        ):
+            raise ConfigError(f"config.toml: [match.renumber.\"{album}\"] 'disc' and 'offset' must be integers")
+
+
 def load(home: Path, downloads_override=None) -> Config:
     """Read config.toml in home (a missing file gives the defaults)."""
     data = {}
@@ -124,6 +170,7 @@ def load(home: Path, downloads_override=None) -> Config:
         p = Path(str(value)).expanduser()
         return p if p.is_absolute() else home / p
 
+    check_shape(data)
     paths = data.get("paths", {})
     store = data.get("store", {})
     match = data.get("match", {})
