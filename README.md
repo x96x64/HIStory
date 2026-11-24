@@ -6,7 +6,7 @@ HIStory (`hist`) rebuilds an Apple Music library on macOS from FLAC downloads, s
 [![PyPI](https://img.shields.io/pypi/v/his-story.svg)](https://pypi.org/project/his-story/)
 [![npm](https://img.shields.io/npm/v/his-story.svg)](https://www.npmjs.com/package/his-story)
 [![Python versions](https://img.shields.io/pypi/pyversions/his-story.svg)](https://pypi.org/project/his-story/)
-[![License](https://img.shields.io/github/license/x96x64/HIStory.svg)](LICENSE)
+[![License](https://img.shields.io/github/license/x96x64/HIStory.svg)](https://github.com/x96x64/HIStory/blob/main/LICENSE)
 
 ## Overview
 
@@ -72,7 +72,7 @@ All four ways install the same command, `hist`. Install the external tools from 
 
 ## Quick Start
 
-Create the catalog folder, check that your machine is ready, and add a first album. A spec file describes the tags of an album (see [docs/catalog-format.md](docs/catalog-format.md)); the folder holds its downloaded FLAC files.
+Create the catalog folder, check that your machine is ready, and add a first album. A spec file describes the tags of an album (see [docs/catalog-format.md](https://github.com/x96x64/HIStory/blob/main/docs/catalog-format.md)); the folder holds its downloaded FLAC files.
 
 ```sh
 hist init                                   # create an empty catalog (or: hist init --from DIR)
@@ -95,7 +95,7 @@ Instead of running `convert` and `dates apply` by hand, you can leave `hist watc
 
 ## Usage Overview
 
-Every command is described, with all of its options, in [docs/commands.md](docs/commands.md). The commands fall into these groups.
+Every command is described, with all of its options, in [docs/commands.md](https://github.com/x96x64/HIStory/blob/main/docs/commands.md). The commands fall into these groups.
 
 | Group | Commands | Purpose |
 | --- | --- | --- |
@@ -110,7 +110,7 @@ Global options go before the command: `--home DIR` selects the catalog folder, `
 
 ## The Catalog
 
-The catalog is a folder (see Configuration for where it is) that holds everything `hist` needs to know about your library: `config.toml` for settings, `tracks.json` for the exact tags, `covers/` for cover images named by their SHA-256 hash, and `dates.json` for folder dates. A `state/` folder holds progress records, logs, locks and backups; it is created by `hist` and is not part of the catalog. The exact file formats are described in [docs/catalog-format.md](docs/catalog-format.md).
+The catalog is a folder (see Configuration for where it is) that holds everything `hist` needs to know about your library: `config.toml` for settings, `tracks.json` for the exact tags, `covers/` for cover images named by their SHA-256 hash, and `dates.json` for folder dates. A `state/` folder holds progress records, logs, locks and backups; it is created by `hist` and is not part of the catalog. The exact file formats are described in [docs/catalog-format.md](https://github.com/x96x64/HIStory/blob/main/docs/catalog-format.md).
 
 Changes are made with `hist catalog` commands rather than by hand. Each command that changes `tracks.json` or `dates.json` first checks the change, then writes the file once, and keeps the previous files in a new folder `state/backups/<time>-<command>/`. A rejected change leaves the catalog untouched.
 
@@ -129,7 +129,7 @@ echo '[{"op": "set", "album": "Album Name", "tag": "Genre", "value": "Soul"}]' |
 echo '[{"op": "set", "album": "Album Name", "tag": "Genre", "value": "Soul"}]' | hist catalog edit --json
 ```
 
-The guide for agents ships inside the tool: `hist agent-help` prints it as Markdown, and `hist agent-help --json` prints it as JSON. It works without a catalog. The same text is the repository's [AGENTS.md](AGENTS.md), and `hist init` writes it into the catalog folder as `AGENTS.md` and `CLAUDE.md`.
+The guide for agents ships inside the tool: `hist agent-help` prints it as Markdown, and `hist agent-help --json` prints it as JSON. It works without a catalog. The same text is the repository's [AGENTS.md](https://github.com/x96x64/HIStory/blob/main/AGENTS.md), and `hist init` writes it into the catalog folder as `AGENTS.md` and `CLAUDE.md`.
 
 ## Configuration
 
@@ -148,15 +148,15 @@ The catalog folder is chosen in this order: the `--home DIR` option, the `HISTOR
 
 ## Troubleshooting
 
-Start with `hist doctor`, which checks Python, the external tools, the configuration, the catalog, the dates file, the folders and the free disk space, and names the command that installs anything missing. For common errors, the exact messages `hist` prints and how to fix them, see [docs/troubleshooting.md](docs/troubleshooting.md).
+Start with `hist doctor`, which checks Python, the external tools, the configuration, the catalog, the dates file, the folders and the free disk space, and names the command that installs anything missing. For common errors, the exact messages `hist` prints and how to fix them, see [docs/troubleshooting.md](https://github.com/x96x64/HIStory/blob/main/docs/troubleshooting.md).
 
 When a command fails, the message says what to run next. Run it again with `-v` for more detail, and read the log of `hist watch` in `state/logs/watch.log` inside the catalog folder. If the problem persists, open an issue on GitHub and include the output of `hist --version` and `hist doctor`.
 
 ## Development and Contributing
 
-Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) explains how to set up a development environment, run the tests and submit a pull request, and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) describes the behavior expected in the project. The repository's [AGENTS.md](AGENTS.md) documents the conventions that AI coding agents and people follow when changing the code.
+Contributions are welcome. [CONTRIBUTING.md](https://github.com/x96x64/HIStory/blob/main/CONTRIBUTING.md) explains how to set up a development environment, run the tests and submit a pull request, and [CODE_OF_CONDUCT.md](https://github.com/x96x64/HIStory/blob/main/CODE_OF_CONDUCT.md) describes the behavior expected in the project. The repository's [AGENTS.md](https://github.com/x96x64/HIStory/blob/main/AGENTS.md) documents the conventions that AI coding agents and people follow when changing the code.
 
-The tool itself needs only the Python standard library; the tests use pytest. After `pip install -e '.[dev]'`, run `python -m pytest -q`, `ruff check .` and `ruff format --check .`. The tests never touch a real Music app or catalog, and tests that need ffmpeg, flac or exiftool skip themselves when those are missing. See CONTRIBUTING.md for the exact commands used by CI. The release process is described in [docs/releasing.md](docs/releasing.md).
+The tool itself needs only the Python standard library; the tests use pytest. After `pip install -e '.[dev]'`, run `python -m pytest -q`, `ruff check .` and `ruff format --check .`. The tests never touch a real Music app or catalog, and tests that need ffmpeg, flac or exiftool skip themselves when those are missing. See CONTRIBUTING.md for the exact commands used by CI. The release process is described in [docs/releasing.md](https://github.com/x96x64/HIStory/blob/main/docs/releasing.md).
 
 ## Versioning and Changelog
 
@@ -172,6 +172,6 @@ Please do not report security problems in a public issue. [SECURITY.md](SECURITY
 
 ## License
 
-HIStory is released under the MIT License; the full text is in the [LICENSE](LICENSE) file. The license applies to the code and the documentation in this repository, and to the packages published on PyPI and npm.
+HIStory is released under the MIT License; the full text is in the [LICENSE](https://github.com/x96x64/HIStory/blob/main/LICENSE) file. The license applies to the code and the documentation in this repository, and to the packages published on PyPI and npm.
 
 Copyright is held by the HIStory contributors. Contributions are accepted under the same license.
