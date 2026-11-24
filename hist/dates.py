@@ -7,16 +7,17 @@ SetFile cannot set dates before 1970, so such entries are refused.
 import datetime
 import json
 import os
+import re
 from pathlib import Path
 
-from hist import proc
+from hist import proc, state
 from hist.errors import HistError
 
 MEDIA = (".m4a", ".m4v")
 
 
 class DatesError(HistError):
-    pass
+    code = "dates"
 
 
 def entries(path: Path) -> list:
@@ -121,3 +122,67 @@ def apply_album(rel: str, all_entries: list, root: Path) -> str:
     if wrong:
         raise DatesError(f"{rel}: {len(wrong)} items do not carry the date after setting it")
     return "dates set"
+
+
+# ----------------------------------------------------------- editing dates.json
+
+def parse_date(text: str) -> str:
+    """text as a valid YYYY-MM-DD date from 1970 on, else DatesError."""
+    try:
+        if not re.fullmatch(r"\d{4}-\d\d-\d\d", text):
+            raise ValueError
+        day = datetime.datetime.strptime(text, "%Y-%m-%d")
+    except ValueError:
+        raise DatesError(f"'{text}' is not a date; write it as YYYY-MM-DD") from None
+    if day.year < 1970:
+        raise DatesError(f"'{text}': dates before 1970 cannot be set")
+    return text
+
+
+def kind_of(path: str, kind: str | None) -> str:
+    """The kind of an entry: 'artist' for Artist, 'album' for Artist/Album; a given kind must agree."""
+    parts = path.split("/")
+    if len(parts) > 2 or any(p in ("", ".", "..") for p in parts):
+        raise DatesError(f"'{path}' must be 'Artist' or 'Artist/Album', relative to the library")
+    inferred = "artist" if len(parts) == 1 else "album"
+    if kind is not None and kind != inferred:
+        raise DatesError(f"'{path}' has {len(parts)} part{'s' * (len(parts) > 1)}, so it is an {inferred} "
+                         f"entry, not {kind}")
+    return inferred
+
+
+def read_document(path: Path) -> dict:
+    doc = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    doc.setdefault("entries", [])
+    return doc
+
+
+def set_entry(path: Path, entry_path: str, date: str, kind: str | None, backup: state.Backup) -> dict:
+    """Add or change the entry for entry_path; returns {"kind", "path", "date", "previous"} (previous may be None)."""
+    date, kind = parse_date(date), kind_of(entry_path, kind)
+    doc = read_document(path)
+    found = next((e for e in doc["entries"] if e.get("kind") == kind and e.get("path") == entry_path), None)
+    previous = found.get("date") if found else None
+    if found is not None:
+        found["date"] = date
+    else:
+        new = {"kind": kind, "path": entry_path, "date": date}
+        first_album = next((i for i, e in enumerate(doc["entries"]) if kind == "artist" and e.get("kind") == "album"
+                            and e.get("path", "").split("/")[0] == entry_path), len(doc["entries"]))
+        doc["entries"].insert(first_album, new)
+    if previous != date:
+        backup.keep(path)
+        state.write_json(path, doc)
+    return {"kind": kind, "path": entry_path, "date": date, "previous": previous}
+
+
+def unset_entry(path: Path, entry_path: str, backup: state.Backup) -> list:
+    """Remove every entry for entry_path; returns the removed entries, or raises DatesError when there is none."""
+    doc = read_document(path)
+    gone = [e for e in doc["entries"] if e.get("path") == entry_path]
+    if not gone:
+        raise DatesError(f"dates.json has no entry for '{entry_path}'")
+    doc["entries"] = [e for e in doc["entries"] if e.get("path") != entry_path]
+    backup.keep(path)
+    state.write_json(path, doc)
+    return gone

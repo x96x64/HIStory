@@ -132,9 +132,12 @@ def migrate_backups(state_dir: Path) -> int:
 
 
 class LockHeld(HistError):
+    code = "locked"
+
     def __init__(self, path: Path, pid: str):
         super().__init__(f"{path.stem} is already running (pid {pid or '?'})")
         self.pid = pid
+        self.name = path.stem
 
 
 class Lock:

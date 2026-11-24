@@ -4,16 +4,18 @@ from pathlib import Path
 
 from hist import catalog, convert, matching, state
 from hist.config import Config
+from hist.log import emit_json
 from hist.music_app import MusicApp
 
 
-def run(config: Config, music: MusicApp | None) -> int:
+def run(config: Config, music: MusicApp | None, as_json: bool = False) -> int:
     all_albums = catalog.albums(config)
     converted = state.converted(config.state).names()
     added = state.added(config.state).load()
     folders = matching.scan(config.sources)
     listed = collections.Counter(a for a, _, _ in music.summary()) if music else None
     counts = collections.Counter()
+    rows = []
     for order, album in enumerate(all_albums, 1):
         name = album["name"]
         if name in added:
@@ -29,7 +31,14 @@ def run(config: Config, music: MusicApp | None) -> int:
             else:
                 label = why
         counts[label.split(",")[0]] += 1
-        extra = f"  [Music: {listed.get(name, 0)}/{len(album['tracks'])}]" if listed is not None else ""
-        print(f"{order:3d}  {album['release']}  {name[:52]:52s}  {label}{extra}")
+        in_music = listed.get(name, 0) if listed is not None else None
+        rows.append({"order": order, "release": album["release"], "name": name, "status": label,
+                     "tracks": len(album["tracks"]), "music_tracks": in_music})
+    if as_json:
+        emit_json({"albums": rows, "summary": dict(counts.most_common()), "total": len(all_albums)})
+        return 0
+    for row in rows:
+        extra = f"  [Music: {row['music_tracks']}/{row['tracks']}]" if listed is not None else ""
+        print(f"{row['order']:3d}  {row['release']}  {row['name'][:52]:52s}  {row['status']}{extra}")
     print(", ".join(f"{n} {k}" for k, n in counts.most_common()) + f" ({len(all_albums)} albums)")
     return 0

@@ -4,29 +4,40 @@ import sys
 
 from hist import catalog, dates, media, proc, state
 from hist.config import Config
+from hist.log import emit_json
 
 
-def run(config: Config) -> int:
+def run(config: Config, as_json: bool = False) -> int:
     failed = 0
+    checks, info = [], []
 
     def line(ok: bool, text: str, required: bool = True) -> None:
         nonlocal failed
         mark = "ok  " if ok else ("FAIL" if required else "warn")
-        print(f"[{mark}] {text}")
+        checks.append({"status": mark.strip().lower(), "text": text})
+        if not as_json:
+            print(f"[{mark}] {text}")
         failed += (not ok and required)
+
+    def say(text: str) -> None:
+        info.append(text)
+        if not as_json:
+            print(text)
 
     line(sys.version_info >= (3, 12), f"Python {sys.version.split()[0]} (3.12 or newer)")
     for tool, required, why in (("ffmpeg", True, ""), ("ffprobe", True, ""), ("flac", True, ""),
                                 ("metaflac", True, ""), ("exiftool", True, ""),
-                                ("osascript", False, "needed by status --music, verify --music, refresh, evacuate, store-entries"),
-                                ("SetFile", False, "needed by dates apply; install the Xcode command line tools")):
+                                ("osascript", False, "macOS only; needed by status --music, verify --music, refresh, evacuate, store-entries"),
+                                ("SetFile", False, "macOS only; needed by dates apply")):
         path = shutil.which(tool)
-        line(bool(path), f"{tool}: {path or 'not found'}" + (f" ({why})" if why and not path else ""), required)
+        line(bool(path), f"{tool}: {path or 'not found'}" + (f" ({why})" if why and not path else "")
+             + (f"; install it, for example with: {proc.INSTALL[tool]}" if not path and tool in proc.INSTALL else ""),
+             required)
     if shutil.which("ffmpeg"):
         encoders = proc.run(["ffmpeg", "-hide_banner", "-encoders"], text=True).stdout
         line(" alac " in encoders, "ffmpeg has the ALAC encoder")
 
-    print(f"home: {config.home}")
+    say(f"home: {config.home}")
     line(config.config_file.exists(), f"config: {config.config_file}" + ("" if config.config_file.exists()
                                                                          else " (missing; run 'hist init')"))
     problems = catalog.check(config)
@@ -55,14 +66,16 @@ def run(config: Config) -> int:
          required=False)
     line(config.auto_add.is_dir(), f"auto_add: {config.auto_add}", required=False)
     if config.store_album:
-        print(f"store album: {config.store_album} ({config.store_file})")
+        say(f"store album: {config.store_album} ({config.store_file})")
     probe = config.downloads[0] if config.downloads else config.home
     free = media.free_bytes(probe) / 2**30
     line(free > config.min_free_gb, f"free disk space: {free:.0f} GB (min_free_gb = {config.min_free_gb:g})",
          required=False)
-    print(f"converted: {len(state.converted(config.state).names())} albums, "
-          f"in the library: {len(state.added(config.state).names())} albums")
+    say(f"converted: {len(state.converted(config.state).names())} albums, "
+        f"in the library: {len(state.added(config.state).names())} albums")
     pid = state.holder(config.state, "convert")
     if pid:
-        print(f"running: hist watch or convert (pid {pid})")
+        say(f"running: hist watch or convert (pid {pid})")
+    if as_json:
+        emit_json({"ok": not failed, "checks": checks, "info": info})
     return 1 if failed else 0

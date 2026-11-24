@@ -3,6 +3,7 @@
 Information goes to standard output, warnings and errors to standard error as 'hist: warning: ...' and
 'hist: error: ...'. Long-running commands prefix their lines with the time and also append them to a log file.
 """
+import json
 import logging
 import sys
 from pathlib import Path
@@ -48,3 +49,22 @@ def long_running(log_file: Path) -> None:
     to_file.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s", "%Y-%m-%dT%H:%M:%S"))
     to_file.setLevel(logging.DEBUG)
     log.addHandler(to_file)
+
+
+def emit_json(document) -> None:
+    """Print a JSON document on standard output (the output of every '--json' option)."""
+    sys.stdout.write(json.dumps(document, ensure_ascii=False, indent=1) + "\n")
+    sys.stdout.flush()
+
+
+def emit_json_error(message: str, code: str) -> None:
+    """Print {"error": {"message": ..., "code": ...}} on standard error."""
+    sys.stderr.write(json.dumps({"error": {"message": message, "code": code}}, ensure_ascii=False) + "\n")
+    sys.stderr.flush()
+
+
+def hint(text: str) -> None:
+    """Print 'hist: next: ...' on standard error: the command to run next (not shown with --quiet)."""
+    if log.handlers and log.handlers[0].level <= logging.INFO:
+        sys.stderr.write(f"hist: next: {text}\n")
+        sys.stderr.flush()

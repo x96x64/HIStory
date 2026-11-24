@@ -51,6 +51,8 @@ min_free_gb = 10
 class ConfigError(HistError):
     """config.toml is missing values or holds wrong ones."""
 
+    code = "config"
+
 
 def resolve_home(option: str | None = None) -> Path:
     raw = option or os.environ.get("HISTORY_HOME") or DEFAULT_HOME

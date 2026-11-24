@@ -2,4 +2,9 @@
 
 
 class HistError(Exception):
-    """An expected failure: hist prints the message and exits with status 1."""
+    """An expected failure: hist prints the message and exits with status 1.
+
+    code is the short name that '--json' error output reports.
+    """
+
+    code = "error"
