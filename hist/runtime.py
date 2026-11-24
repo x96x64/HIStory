@@ -1,7 +1,8 @@
 """Stopping long-running commands cleanly, and keeping the Mac awake while they run.
 
 The first Ctrl-C (SIGINT) or a SIGTERM from 'hist stop' asks the command to stop after the album it is working on.
-While the command is only waiting (between albums, or for Enter), it stops at once. A second Ctrl-C stops at once.
+While the command is only waiting (between albums, or for Enter), it stops at once. A second signal, SIGINT or
+SIGTERM, stops at once.
 """
 
 import os
@@ -30,7 +31,7 @@ class Stopper:
         return self
 
     def _handle(self, signum, frame):
-        if self.signum == signal.SIGINT and signum == signal.SIGINT:
+        if self.signum is not None:
             raise KeyboardInterrupt
         self.signum = self.signum or signum
         if self.idle:
