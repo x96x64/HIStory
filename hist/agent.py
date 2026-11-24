@@ -1,0 +1,195 @@
+"""The guide for AI agents and scripts, written once and rendered three ways.
+
+GUIDE is the single source of 'hist agent-help', 'hist agent-help --json' and AGENTS.md (the one in the
+repository and the one 'hist init' writes into the catalog folder). A test keeps the repository's files equal to the
+rendered text.
+"""
+from pathlib import Path
+
+GUIDE = {
+    "summary": "hist keeps the exact tags of every track in a catalog (tracks.json, covers/, dates.json). Read and "
+               "change the catalog only through hist; do not edit its JSON files by hand.",
+    "rules": [
+        "No command asks a question. 'catalog edit' reads standard input when FILE is '-' or omitted, and fails at "
+        "once when that is a terminal.",
+        "Name an album with text from its name; if the text matches several albums the command fails and lists "
+        "them. Use --exact with the full name (from 'hist catalog list --json') to be sure.",
+        "Every change to the catalog keeps the previous files in <home>/state/backups/. One writer runs at a "
+        "time; a second one fails at once with code 'locked'.",
+        "Changing the catalog does not change the files in the library. Run 'hist retag' afterwards.",
+    ],
+    "workflow": [
+        {"step": "inspect", "commands": ["hist catalog list --json", "hist catalog show \"Album Name\" --json",
+                                          "hist status --json", "hist dates list --json", "hist catalog check --json",
+                                          "hist doctor --json"]},
+        {"step": "preview", "commands": ["hist catalog edit ops.json --dry-run --json"]},
+        {"step": "apply", "commands": ["hist catalog edit ops.json"]},
+        {"step": "propagate", "commands": ["hist retag \"<library>/Artist/Album Name\" --apply",
+                                           "hist dates apply --only \"Album Name\""]},
+        {"step": "verify", "commands": ["hist catalog check --json"]},
+    ],
+    "commands": [
+        {"command": "hist catalog list [--json]", "does": "list the albums, oldest release first"},
+        {"command": "hist catalog show ALBUM [--disc N] [--track N] [--exact] [--json]",
+         "does": "show the tracks of an album with every tag"},
+        {"command": "hist catalog edit [FILE|-] [--dry-run] [--retag] [--exact] [--json]",
+         "does": "apply a JSON array of set and unset operations in one write, with one backup"},
+        {"command": "hist catalog set ALBUM TAG VALUE [--disc N] [--track N] [--exact]",
+         "does": "set one tag on an album or one track"},
+        {"command": "hist catalog unset ALBUM TAG [--disc N] [--track N] [--exact]", "does": "remove one tag"},
+        {"command": "hist catalog cover ALBUM IMAGE [--exact]", "does": "make a JPEG or PNG the cover of an album"},
+        {"command": "hist catalog export ALBUM [-o FILE] [--exact]",
+         "does": "write the album as a spec file that 'catalog add' accepts"},
+        {"command": "hist catalog check [--json]", "does": "check the catalog for problems; exit 1 if any"},
+        {"command": "hist dates list [--json]", "does": "list the entries of dates.json"},
+        {"command": "hist dates set PATH DATE [--kind album|artist] [--json]",
+         "does": "set an entry (PATH is Artist or Artist/Album, DATE is YYYY-MM-DD)"},
+        {"command": "hist dates unset PATH [--json]", "does": "remove the entries of PATH"},
+        {"command": "hist dates check [--json]", "does": "compare the library's dates with dates.json"},
+        {"command": "hist retag PATH... [--apply]", "does": "write the catalog's tags into the M4A files under PATH"},
+        {"command": "hist status [--json]", "does": "show how far each album has come"},
+        {"command": "hist doctor [--json]", "does": "check the tools, the configuration and the catalog"},
+    ],
+    "edit": {
+        "input": "a JSON array of operations, from FILE or from standard input ('-')",
+        "keys": {
+            "op": "\"set\" or \"unset\" (required)",
+            "album": "text contained in the album name (required)",
+            "tag": "tag name, with or without its group: Genre or ItemList:Genre (required)",
+            "value": "the new value, a non-empty string ('set' only, required there)",
+            "disc": "integer; limits the operation to one disc (optional)",
+            "track": "integer; limits the operation to one track number (optional)",
+            "exact": "true: album is the album's exact name (optional)",
+        },
+        "rules": [
+            "Without disc and track an operation covers the whole album.",
+            "Every operation is checked before anything is written; one error rejects the whole batch.",
+            "Title, Album, AlbumArtist, Artist, TrackNumber and DiskNumber cannot be removed; Comment and Encoder "
+            "are never stored.",
+        ],
+        "example": [
+            {"op": "set", "album": "Album Name", "disc": 1, "track": 3, "tag": "Title", "value": "New Title"},
+            {"op": "set", "album": "Album Name", "tag": "Genre", "value": "Soul"},
+            {"op": "unset", "album": "Album Name", "tag": "Composer"},
+        ],
+    },
+    "exit_codes": {"0": "success", "1": "an error, or a check found problems", "2": "a usage or configuration error",
+                   "130": "interrupted (Ctrl-C)", "143": "stopped by SIGTERM"},
+    "errors": {
+        "json": "with --json an error is printed on standard error as {\"error\": {\"message\": ..., \"code\": ...}}",
+        "codes": ["usage", "config", "catalog", "dates", "locked", "tool", "error"],
+    },
+}
+
+CLAUDE_MD = "@AGENTS.md\n"
+
+SETUP = "python -m venv .venv && .venv/bin/pip install -e '.[test]'"
+TEST = ".venv/bin/python -m pytest -q"
+
+
+def _code(lines: list, language: str = "sh") -> str:
+    return f"```{language}\n" + "\n".join(lines) + "\n```\n"
+
+
+def _bullets(items: list) -> str:
+    return "\n".join(f"- {i}" for i in items) + "\n"
+
+
+def _editing() -> list:
+    """The shared description of how to read and change metadata (the body of both AGENTS.md files)."""
+    g = GUIDE
+    out = [g["summary"] + "\n", _bullets(g["rules"])]
+    for number, step in enumerate(g["workflow"], 1):
+        out += [f"{number}. {step['step'].capitalize()}\n", _code(step["commands"])]
+    out += ["Commands:\n", _bullets([f"`{c['command']}`: {c['does']}" for c in g["commands"]]),
+            f"`catalog edit` takes {g['edit']['input']}. Keys of an operation:\n",
+            _bullets([f"`{k}`: {v}" for k, v in g["edit"]["keys"].items()]), _bullets(g["edit"]["rules"]),
+            "Example `ops.json`:\n", _code(_json(g["edit"]["example"]).splitlines(), "json"),
+            "Exit codes:\n", _bullets([f"`{k}`: {v}" for k, v in g["exit_codes"].items()]),
+            g["errors"]["json"][0].upper() + g["errors"]["json"][1:] + ". Codes: "
+            + ", ".join(f"`{c}`" for c in g["errors"]["codes"]) + ".\n"]
+    return out
+
+
+def agents_md(repository: bool = False) -> str:
+    """AGENTS.md: for the repository (repository=True) or for a catalog folder."""
+    if repository:
+        out = [
+            "# AGENTS.md\n",
+            "## Project Overview\n",
+            "`hist` is a command-line tool that rebuilds an Apple Music library on macOS from FLAC downloads with "
+            "exact, verified tags. A catalog (`tracks.json`, `covers/`, `dates.json`) holds the tags every track "
+            "must have. The package is `hist/` and the command is `hist` (`hist.cli:main`). The documentation is "
+            "in `README.md` and `docs/`.\n",
+            "## Setup\n", _code([SETUP]),
+            "## Build and Test Commands\n",
+            _code([TEST, f"{TEST} tests/test_agent.py", ".venv/bin/hist --help"]),
+            "## Code Style\n",
+            _bullets(["Python 3.12 or newer and the standard library only; do not add dependencies.",
+                      "Use type hints on function signatures, short docstrings, and lines of at most 120 "
+                      "characters.",
+                      "Commands are `argparse` sub-commands in `hist/cli.py`; keep the logic in the other modules "
+                      "and keep `cli.py` thin.",
+                      "Write help text and documentation in clear, formal English with ASCII quotes."]),
+            "## Testing Instructions\n",
+            _bullets(["Tests are in `tests/` and call `hist.cli.main([...])` in process.",
+                      "`tests/conftest.py` points `HOME` and `HISTORY_HOME` into a temporary folder and makes "
+                      "`MusicApp.osa` fail, so a test can never touch the real Music app or catalog.",
+                      "Add or update tests for every change, and run the whole suite before you commit. Tests "
+                      "that need ffmpeg, flac or exiftool skip themselves when the tools are missing."]),
+            "## Using hist to Edit Metadata\n",
+            "Never edit `tracks.json` or `dates.json` by hand; use the commands below.\n",
+            *_editing(),
+            "## Commit and Pull Request Guidelines\n",
+            _bullets(["Use Conventional Commits 1.0: `type(scope): subject`.",
+                      "Write the subject in the imperative mood, in lowercase, without a final period, in at most "
+                      "72 characters.",
+                      "Wrap the body at 72 characters when the change is not trivial, and explain why.",
+                      "Keep each commit to one logical change, and update `docs/commands.md` and `CHANGELOG.md` "
+                      "(section Unreleased) with every change of behavior."]),
+            "## Security Considerations\n",
+            _bullets(["Every command that changes the catalog keeps the previous files in `state/backups/` first.",
+                      "`hist` makes no network connections and needs no credentials; do not commit secrets or a "
+                      "real catalog.",
+                      "Commands that change the Music app or the library folder are marked in `docs/commands.md`; "
+                      "tests never run them against a real library."]),
+        ]
+    else:
+        out = [
+            "# AGENTS.md\n",
+            "## Overview\n",
+            "This folder is a `hist` catalog: the exact tags and covers of a music library.\n",
+            _code(["config.toml     settings", "tracks.json     the tags of every track",
+                   "covers/         cover images, named by SHA-256", "dates.json      folder and file dates",
+                   "state/          backups, locks and progress records (written by hist)"], "text"),
+            "## Editing Metadata with hist\n",
+            *_editing(),
+            "## What Not to Edit by Hand\n",
+            _bullets(["`tracks.json`, `dates.json` and everything in `covers/` and `state/`: use the commands "
+                      "above, which validate the change, hold a lock and keep a backup."]),
+            "## Recovering from Backups\n",
+            "Each change keeps the files it replaced in `state/backups/<time>-<command>/`. To undo a change, copy "
+            "`tracks.json` or `dates.json` from that folder back into this folder, then run "
+            "`hist catalog check`.\n",
+        ]
+    return "\n".join(out)
+
+
+def _json(document) -> str:
+    import json
+    return json.dumps(document, ensure_ascii=False, indent=1) + "\n"
+
+
+def guide_json() -> str:
+    return _json(GUIDE)
+
+
+def write_guides(folder: Path) -> list:
+    """Write AGENTS.md and CLAUDE.md into folder unless they exist (they are never overwritten); returns the new ones."""
+    written = []
+    for name, text in (("AGENTS.md", agents_md()), ("CLAUDE.md", CLAUDE_MD)):
+        target = folder / name
+        if not target.exists():
+            target.write_text(text, encoding="utf-8")
+            written.append(name)
+    return written
