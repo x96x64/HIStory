@@ -1,13 +1,13 @@
 """HIStory: rebuild an Apple Music library on macOS from FLAC downloads with exact, verified tags."""
 
-import json
-import tomllib
-from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 
 def _source_version() -> str:
     """The version of a copy that is not installed: the npm package or a source tree."""
+    import json
+    import tomllib
+
     parent = Path(__file__).resolve().parent.parent
     try:
         return json.loads((parent / "package.json").read_text(encoding="utf-8"))["version"]
@@ -19,7 +19,15 @@ def _source_version() -> str:
         return "0+unknown"
 
 
-try:
-    __version__ = version("his-story")
-except PackageNotFoundError:
-    __version__ = _source_version()
+def __getattr__(name: str) -> str:
+    """Resolve __version__ on first use, so that importing hist does not load importlib.metadata."""
+    if name == "__version__":
+        from importlib.metadata import PackageNotFoundError, version
+
+        try:
+            found = version("his-story")
+        except PackageNotFoundError:
+            found = _source_version()
+        globals()["__version__"] = found
+        return found
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
