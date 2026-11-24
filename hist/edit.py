@@ -83,7 +83,8 @@ def plan(records: list[dict], operations: list) -> list[tuple]:
             try:
                 album = catalog.select_album(records, op["album"], op.get("exact", False))
                 picked = catalog.pick_records(records, album, op.get("disc"), op.get("track"))
-                planned.append((op, [i for i, r in enumerate(records) if any(r is p for p in picked)]))
+                chosen = {id(p) for p in picked}
+                planned.append((op, [i for i, r in enumerate(records) if id(r) in chosen]))
             except CatalogError as error:
                 found = [str(error)]
         problems += [f"operation {number}: {text}" for text in found]

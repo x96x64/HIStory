@@ -5,6 +5,7 @@ repository and the one 'hist init' writes into the catalog folder). A test keeps
 rendered text.
 """
 
+import json
 from pathlib import Path
 
 GUIDE = {
@@ -255,8 +256,6 @@ def agents_md(repository: bool = False) -> str:
 
 
 def _json(document) -> str:
-    import json
-
     return json.dumps(document, ensure_ascii=False, indent=1) + "\n"
 
 
