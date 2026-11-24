@@ -21,11 +21,12 @@ def run(config: Config, roots: list, allow_missing: bool, decode: bool, music: M
     problems = []
     log.info(f"M4A files found: {len(found)}")
 
-    ref = {(tags.pick(s.tags, "album"), s.number): s for s in saved}
-    keys = [(tags.pick(t.tags, "album"), t.number) for t in found]
-    missing = [k for k in ref if k not in set(keys)]
+    ref = {(tags.pick(s.tags, "album"), s.artist, s.number): s for s in saved}
+    keys = [(tags.pick(t.tags, "album"), t.artist, t.number) for t in found]
+    present = set(keys)
+    missing = [k for k in ref if k not in present]
     dups = [k for k, v in collections.Counter(keys).items() if v > 1]
-    unknown = [k for k in set(keys) if k not in ref]
+    unknown = [k for k in present if k not in ref]
     diff = [
         t for t, k in zip(found, keys, strict=False) if k in ref and (t.tags != ref[k].tags or t.blobs != ref[k].blobs)
     ]
@@ -70,11 +71,11 @@ def run(config: Config, roots: list, allow_missing: bool, decode: bool, music: M
         if bad:
             problems.append("files do not decode cleanly")
 
-    per = collections.Counter(tags.pick(t.tags, "album") for t in found)
+    per = collections.Counter((t.album, t.artist) for t in found)
     short = {
-        a["name"]: (per.get(a["name"], 0), len(a["tracks"]))
+        a["name"]: (per.get(a["key"], 0), len(a["tracks"]))
         for a in all_albums
-        if per.get(a["name"], 0) != len(a["tracks"])
+        if per.get(a["key"], 0) != len(a["tracks"])
     }
     log.info(f"albums whose track count differs: {short or 'none'}")
     if short and not allow_missing:
