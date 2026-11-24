@@ -1,4 +1,5 @@
 import logging
+import os
 
 import pytest
 from conftest import needs_tools, spec
@@ -103,3 +104,48 @@ def test_pending_lists_albums_not_yet_converted(env):
     assert convert.pending(env.config()) == ["Hits"]
     convert.run_once(env.config(), convert.Options())
     assert convert.pending(env.config()) == []
+
+
+def test_upper_case_flac_files_are_converted_and_stale_outputs_removed(env):
+    d = setup_album(env)
+    for p in list(d.glob("*.flac")):
+        p.rename(p.with_suffix(".FLAC"))
+    (d / "garbage.M4A").write_bytes(b"not audio")
+    assert convert.run_once(env.config(), convert.Options()).converted == 1
+    assert not [p for p in d.iterdir() if p.suffix.lower() == ".flac"]
+    names = sorted(p.name for p in d.iterdir() if p.suffix.lower() == ".m4a")
+    assert names == ["01 One.m4a", "02 Two.m4a", "03 Three.m4a"]
+
+
+def test_a_folder_with_only_hidden_flac_files_does_not_fail_the_stale_check(env):
+    d = env.downloads / "Band" / "Odd"
+    d.mkdir(parents=True)
+    (d / "a.m4a").write_bytes(b"x")
+    (d / ".hidden.flac").write_bytes(b"x")
+    assert convert.remove_stale_outputs(env.config(), [], set(), "") == 0
+
+
+def test_conversion_writes_a_hidden_temporary_file_that_scans_ignore(env, monkeypatch):
+    d = setup_album(env)
+    seen = []
+    real = media.alac_command
+
+    def spy(source, out):
+        seen.append(out)
+        return real(source, out)
+
+    monkeypatch.setattr(media, "alac_command", spy)
+    convert.process_file(sorted(d.glob("*.flac"))[0], catalog.load(env.config())[0], env.config().covers, True)
+    assert seen and seen[0].name.startswith(".")
+    assert not [p for p in d.iterdir() if p.name.startswith(".")]
+
+
+def test_stage_store_file_leaves_no_partial_copy(env):
+    cfg = env.config(store_album="Hits", store_file="song.m4a")
+    cfg.library.mkdir(parents=True, exist_ok=True)
+    src = cfg.store_library_copy
+    src.write_bytes(b"data")
+    os.utime(src, (1, 1))
+    assert convert.stage_store_file(cfg, set())
+    assert cfg.store_staged.read_bytes() == b"data"
+    assert [p.name for p in cfg.store_staged.parent.iterdir()] == ["song.m4a"]
