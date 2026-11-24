@@ -92,6 +92,7 @@ Commands:
 - `hist catalog unset ALBUM TAG [--disc N] [--track N] [--exact]`: remove one tag
 - `hist catalog cover ALBUM IMAGE [--exact]`: make a JPEG or PNG the cover of an album
 - `hist catalog export ALBUM [-o FILE] [--exact]`: write the album as a spec file that 'catalog add' accepts
+- `hist catalog undo [--dry-run] [--json]`: restore the newest backup of tracks.json and dates.json; a second undo redoes it
 - `hist catalog check [--json]`: check the catalog for problems; exit 1 if any
 - `hist dates list [--json]`: list the entries of dates.json
 - `hist dates set PATH DATE [--kind album|artist] [--json]`: set an entry (PATH is Artist or Artist/Album, DATE is YYYY-MM-DD)

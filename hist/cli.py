@@ -446,6 +446,23 @@ def catalog_remove(args, cfg) -> int:
     return EXIT_OK
 
 
+def catalog_undo(args, cfg) -> int:
+    with writer_lock(cfg):
+        done = catalog.undo(cfg, dry_run=args.dry_run)
+    if args.json:
+        emit_json(done)
+        return EXIT_OK
+    verb = "Would restore" if args.dry_run else "Restored"
+    log.info(f"{verb} {', '.join(done['restored'])} from state/backups/{done['from']}")
+    if done["covers"]:
+        log.info(f"  {len(done['covers'])} covers {'would be' if args.dry_run else 'were'} put back into covers/")
+    if done["backup"]:
+        log.info(f"The files it replaced are kept in {done['backup']}; run 'hist catalog undo' again to redo.")
+    if not args.dry_run:
+        hint("hist retag PATH --apply   (the files keep their tags until then)")
+    return EXIT_OK
+
+
 def catalog_add(args, cfg) -> int:
     spec = catalog.read_spec(Path(args.spec).expanduser())
     with writer_lock(cfg):
@@ -583,6 +600,7 @@ CATALOG_ACTIONS = {
     "edit": catalog_edit,
     "cover": catalog_cover,
     "export": catalog_export,
+    "undo": catalog_undo,
 }
 
 
@@ -725,7 +743,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--no-decode", action="store_true", help="skip decoding every file")
     p.add_argument("--json", action="store_true", help='print {"ok": ..., "lines": [...]} instead of text')
 
-    p = add("catalog", cmd_catalog, "list, show, edit, add to, remove from and check the catalog")
+    p = add("catalog", cmd_catalog, "list, show, edit, add to, remove from, undo changes to and check the catalog")
     actions = p.add_subparsers(dest="action", metavar="<action>", required=True)
 
     def album_args(a, track=False):
@@ -785,6 +803,9 @@ def build_parser() -> argparse.ArgumentParser:
     a.add_argument("album", help="text contained in the album name")
     a.add_argument("--dry-run", action="store_true", help="show what would be removed")
     album_args(a)
+    a = actions.add_parser("undo", help="restore the files of the newest backup (a second undo redoes it)")
+    a.add_argument("--dry-run", action="store_true", help="show what would be restored")
+    a.add_argument("--json", action="store_true", help="print JSON instead of text")
     a = actions.add_parser("check", help="check the catalog files for consistency")
     a.add_argument("--json", action="store_true", help="print JSON instead of text")
     a = actions.add_parser("import", help="start an empty catalog from the tags of an existing library folder")
