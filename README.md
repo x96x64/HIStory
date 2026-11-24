@@ -4,7 +4,7 @@ HIStory (`hist`) rebuilds an Apple Music library on macOS from FLAC downloads, s
 
 [![CI](https://github.com/x96x64/HIStory/actions/workflows/ci.yml/badge.svg)](https://github.com/x96x64/HIStory/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/his-story?label=PyPI)](https://pypi.org/project/his-story/)
-[![npm](https://img.shields.io/npm/v/@x96x64/his-story?label=npm)](https://www.npmjs.com/package/@x96x64/his-story)
+[![npm](https://img.shields.io/npm/v/@x96x64/his-story?label=npm&cacheSeconds=21600)](https://www.npmjs.com/package/@x96x64/his-story)
 [![Python versions](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)](https://pypi.org/project/his-story/)
 [![License](https://img.shields.io/github/license/x96x64/HIStory)](https://github.com/x96x64/HIStory/blob/main/LICENSE)
 
