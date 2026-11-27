@@ -26,9 +26,10 @@ give `--from` a folder that contains `tracks.json`.
 **"config.toml: ..." or "[store] needs both 'album' and 'file'".**
 `config.toml` is not valid TOML or lacks a required key. See docs/catalog-format.md for every key.
 
-**"catalog is already running (pid N)" (error code `locked`).**
-Another `hist` process is writing the catalog, or a `watch` or `convert` is running. Wait for it, or end it with
-`hist stop`. The lock is released by the operating system when the process ends, so a stale lock file is harmless.
+**"catalog is already running (pid N)" or "convert is already running (pid N)" (error code `locked`).**
+"catalog" means that another `hist` command is writing `tracks.json` or `dates.json`; wait for it. "convert" means
+that a `watch` or `convert` is running; wait for it, or end it with `hist stop`. The lock is released by the
+operating system when the process ends, so a stale lock file is harmless.
 
 ## Catalog Errors
 
