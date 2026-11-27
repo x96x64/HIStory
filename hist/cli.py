@@ -38,6 +38,16 @@ class _Parser(argparse.ArgumentParser):
 
     json_requested = False
 
+    @staticmethod
+    def asks_for_json(argv: list[str]) -> bool:
+        """True when --json, or an abbreviation of it that argparse accepts (--js), comes before a literal '--'."""
+        for a in argv:
+            if a == "--":
+                return False
+            if len(a) >= 3 and "--json".startswith(a):
+                return True
+        return False
+
     def error(self, message: str):
         if _Parser.json_requested:
             emit_json_error(message, "usage")
@@ -847,7 +857,7 @@ def fail(args, message: str, code: str, status: int) -> int:
 
 def main(argv=None) -> int:
     parser = build_parser()
-    _Parser.json_requested = "--json" in (sys.argv[1:] if argv is None else list(argv))
+    _Parser.json_requested = _Parser.asks_for_json(sys.argv[1:] if argv is None else list(argv))
     args = parser.parse_args(argv)
     setup(verbose=args.verbose, quiet=args.quiet)
     if not args.command:

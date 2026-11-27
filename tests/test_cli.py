@@ -171,6 +171,16 @@ def test_unexpected_errors_map_to_code_error(capsys, monkeypatch, raised):
     assert _json_error(capsys)["code"] == "error"
 
 
+def test_usage_error_is_json_for_an_abbreviation_but_not_after_double_dash(capsys):
+    with pytest.raises(SystemExit):
+        main(["catalog", "show", "--js", "--bogus"])
+    assert _json_error(capsys)["code"] == "usage"
+    with pytest.raises(SystemExit):
+        main(["catalog", "show", "--bogus", "--", "--json"])
+    err = capsys.readouterr().err
+    assert "usage:" in err and not err.lstrip().startswith("{")
+
+
 def test_usage_error_is_json_with_json_option(capsys):
     with pytest.raises(SystemExit) as exit_info:
         main(["catalog", "show", "--json", "--bogus"])

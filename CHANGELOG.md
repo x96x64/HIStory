@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `hist dates apply` now dates the folder of an album after its contents, as before, instead of before them.
 - Files written by `hist` (`tracks.json`, `dates.json` and others) keep the permissions of the file they replace,
   and a new file gets the usual permissions of the umask instead of `0600`.
+- Usage errors are printed as JSON when `--json` is abbreviated (for example `--js`), and a `--json` after a
+  literal `--` is no longer taken as the option.
 
 ## [2.5.1] - 2026-11-24
 
