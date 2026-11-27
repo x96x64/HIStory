@@ -45,3 +45,20 @@ def test_store_blob_writes_the_cover_by_its_digest(tmp_path):
     assert (tmp_path / "covers" / digest).read_bytes() == b"picture"
     assert digest == hashlib.sha256(b"picture").hexdigest()
     assert [p.name for p in (tmp_path / "covers").iterdir()] == [digest]
+
+
+def test_write_bytes_gives_a_new_file_the_umask_mode_and_keeps_the_mode_of_an_old_one(tmp_path):
+    import os
+
+    from hist import state
+
+    umask = os.umask(0)
+    os.umask(umask)
+    new = tmp_path / "new.json"
+    state.write_bytes(new, b"x")
+    assert new.stat().st_mode & 0o777 == 0o666 & ~umask
+    old = tmp_path / "old.json"
+    old.write_bytes(b"a")
+    old.chmod(0o644)
+    state.write_bytes(old, b"b")
+    assert old.stat().st_mode & 0o777 == 0o644
