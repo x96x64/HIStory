@@ -292,10 +292,11 @@ and DiskNumber cannot be removed; Comment and Encoder are never stored.
 
 ## JSON OUTPUT
 
-With `--json`, `catalog list`, `show`, `edit`, `check`, `dates list`, `check`, `set`, `unset`, `status`, `doctor`
+With `--json`, `catalog list`, `show`, `edit`, `undo`, `check`, `dates list`, `check`, `set`, `unset`, `status`, `doctor`
 and `verify` print one JSON document on standard output. An error is printed on standard error as
 `{"error": {"message": ..., "code": ...}}`, with the same exit status as in text mode. A command-line usage error is reported the same way (code `usage`,
-exit status 2) when `--json` is among the arguments. File and input errors (a missing file, a file that is not valid
+exit status 2) when `--json` is among the arguments, also when it is abbreviated (for example `--js`), but not
+after a literal `--`. File and input errors (a missing file, a file that is not valid
 JSON or UTF-8) have the code `error`. Codes: `usage`, `config`,
 `catalog`, `dates`, `locked`, `tool`, `platform`, `error`. `agent-help --json` prints the guide as JSON.
 
