@@ -119,7 +119,8 @@ Lines are also written to `state/logs/watch.log`.
 ### hist stop
 
 Send SIGTERM to a running `watch` or `convert`. Each finishes the album it is working on, then exits. It prints
-"Nothing is running" when no process holds the lock, or when the recorded process no longer exists.
+"Nothing is running" when no process holds the lock; a process id left in `convert.lock` after a crash is
+ignored.
 
 ### hist dates list | apply | check | script | set | unset [--only TEXT] [--dry-run] [--json]
 
