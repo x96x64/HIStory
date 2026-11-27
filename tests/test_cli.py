@@ -196,20 +196,36 @@ def test_stop_signals_the_holder(tmp_path, capsys, monkeypatch):
     import os
 
     from hist import log as hist_log
+    from hist import state
 
     main(["init"])
     lock = tmp_path / "home" / "state" / "convert.lock"
     lock.parent.mkdir(parents=True, exist_ok=True)
-    lock.write_text(str(os.getpid()))
     sent = []
     real = os.kill
     monkeypatch.setattr(os, "kill", lambda pid, sig: sent.append((pid, sig)) if sig else real(pid, sig))
     try:
-        assert main(["-q", "stop"]) == 0
+        with state.Lock(lock.parent, "convert"):
+            assert main(["-q", "stop"]) == 0
     finally:
         hist_log.setup()  # later tests that do not call main() rely on a console handler at the default level
     assert sent == [(os.getpid(), signal.SIGTERM)]
     assert "Asked hist" in capsys.readouterr().out
+
+
+def test_holder_ignores_a_live_pid_without_a_held_lock(tmp_path, capsys):
+    import os
+
+    from hist import state
+
+    main(["init"])
+    capsys.readouterr()
+    lock = tmp_path / "home" / "state" / "convert.lock"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text(str(os.getpid()))
+    assert state.holder(tmp_path / "home" / "state", "convert") is None
+    assert main(["stop"]) == 0
+    assert "Nothing is running." in capsys.readouterr().out
 
 
 def test_holder_does_not_take_the_lock(tmp_path):

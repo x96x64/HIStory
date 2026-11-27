@@ -215,8 +215,9 @@ class Lock:
 def holder(state_dir: Path, name: str) -> int | None:
     """The process id holding <name>.lock, or None when nobody holds it.
 
-    The file is only read: taking the lock here, even briefly, could make a concurrent writer fail with 'locked'.
     The owner writes its id on acquiring and clears the file on releasing; an id whose process is gone is stale.
+    Only when the file names a live process is the lock probed, with a shared, non-blocking lock that is released
+    at once, so a concurrent writer is hardly disturbed; a live id without a held lock (a reused id) is stale.
     """
     try:
         text = (state_dir / f"{name}.lock").read_text().strip()
@@ -231,4 +232,18 @@ def holder(state_dir: Path, name: str) -> int | None:
         return None
     except PermissionError:
         pass
-    return pid
+    try:
+        fd = os.open(state_dir / f"{name}.lock", os.O_RDONLY)
+    except OSError:
+        return None
+    try:
+        fcntl.flock(fd, fcntl.LOCK_SH | fcntl.LOCK_NB)
+    except BlockingIOError:
+        return pid
+    except OSError:
+        return pid
+    else:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        return None
+    finally:
+        os.close(fd)
