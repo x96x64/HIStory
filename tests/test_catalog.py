@@ -212,3 +212,19 @@ def test_add_spec_takes_upper_case_flac_files_and_skips_hidden_ones(env):
         p.rename(p.with_suffix(".FLAC"))
     (d / "._resource.flac").write_bytes(b"x")
     assert catalog.add_spec(env.config(), spec("Shout", "Band", "2001-02-03", ["One", "Two"]), d) == 2
+
+
+def test_a_non_numeric_track_number_in_another_album_does_not_block_edits(tmp_path):
+    import json
+
+    from test_agent import record
+
+    from hist.cli import main
+
+    assert main(["init"]) == 0
+    vinyl = record("Vinyl", "Side A", 1)
+    vinyl["tags"]["ItemList:TrackNumber"] = "A1"
+    other = record("Other", "One", 1)
+    (tmp_path / "home" / "tracks.json").write_text(json.dumps({"format": 2, "tracks": [vinyl, other]}))
+    assert main(["catalog", "set", "Other", "Genre", "Soul"]) == 0
+    assert main(["catalog", "set", "Vinyl", "Genre", "Soul", "--track", "1"]) == 1

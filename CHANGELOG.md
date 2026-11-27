@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `hist catalog undo` after a command that created `tracks.json` or `dates.json` now removes that file instead of
   restoring an older, unrelated backup. The report lists these files under `removed`, and a second undo brings
   them back.
+- One track number or disc number that is not a number (for example `A1`) in one album no longer blocks
+  `hist catalog set`, `unset` and `edit` in every other album. The duplicate check covers only the albums an
+  operation touches, and `--disc` and `--track` simply do not match a track whose number cannot be read.
 - Files written by `hist` (`tracks.json`, `dates.json` and others) keep the permissions of the file they replace,
   and a new file gets the usual permissions of the umask instead of `0600`.
 

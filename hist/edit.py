@@ -122,7 +122,7 @@ def compute(config: Config, operations: list, exact: bool = False) -> tuple:
     """Validate and apply the operations in memory; returns (old records, new records, changed tracks).
 
     Raises CatalogError, listing every problem found, when any operation is invalid or the result would have
-    two tracks with the same album, disc and track.
+    two tracks with the same album, disc and track (only in the albums the operations touch).
     """
     if exact:
         operations = [{**op, "exact": True} if isinstance(op, dict) else op for op in operations]
@@ -136,9 +136,12 @@ def compute(config: Config, operations: list, exact: bool = False) -> tuple:
                 new[i]["tags"][tag] = op["value"]
             else:
                 new[i]["tags"].pop(tag, None)
+    touched = {catalog.album_of(records[i]) for _, indexes in planned for i in indexes}
     seen, problems = {}, []
     for r in new:
-        key = (catalog.album_of(r), catalog.record_number(r))
+        if catalog.album_of(r) not in touched or (number := catalog.number_or_none(r)) is None:
+            continue
+        key = (catalog.album_of(r), number)
         if key in seen:
             problems.append(f"{r['file']}: would have the same album, disc and track as {seen[key]}")
         seen[key] = r["file"]

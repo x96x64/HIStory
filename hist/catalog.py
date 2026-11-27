@@ -167,15 +167,27 @@ def record_number(record: dict) -> tuple:
         ) from None
 
 
+def number_or_none(record: dict) -> tuple | None:
+    """(disc, track) of a record, or None when a number cannot be parsed."""
+    try:
+        return record_number(record)
+    except CatalogError:
+        return None
+
+
 def pick_records(records: list[dict], album: str, disc: int | None, track: int | None) -> list[dict]:
+    """The records of an album, limited to a disc and a track; a record with an unreadable number does not match."""
     picked = [r for r in records if album_of(r) == album]
-    if track is not None:
-        picked = [r for r in picked if record_number(r)[1] == track and (disc is None or record_number(r)[0] == disc)]
-    elif disc is not None:
-        picked = [r for r in picked if record_number(r)[0] == disc]
+    if track is not None or disc is not None:
+        numbers = [(r, number_or_none(r)) for r in picked]
+        picked = [
+            r
+            for r, n in numbers
+            if n is not None and (track is None or n[1] == track) and (disc is None or n[0] == disc)
+        ]
     if not picked:
         raise CatalogError(f"no such track in {album}; run 'hist catalog show \"{album}\" --exact' to see its tracks")
-    return sorted(picked, key=record_number)
+    return sorted(picked, key=lambda r: number_or_none(r) or (0, 0))
 
 
 def set_tag(
@@ -529,11 +541,15 @@ def export_spec(config: Config, album_text: str, exact: bool = False, cover_to: 
             track["copyright"] = of(r, "Copyright")
         tracks.append(track)
     discs = first_tags.get("ItemList:DiskNumber", "1 of 1").split()
+    try:
+        disc_count = int(discs[-1]) if len(discs) == 3 else 1
+    except ValueError:
+        raise CatalogError(f"{album}: DiskNumber '{' '.join(discs)}' is not a number") from None
     spec = {
         "album": album,
         "album_artist": of(picked[0], "AlbumArtist"),
         "release": of(picked[0], "ContentCreateDate")[:10].replace(":", "-"),
-        "discs": int(discs[-1]) if len(discs) == 3 else 1,
+        "discs": disc_count,
     }
     if common:
         spec["copyright"] = common
