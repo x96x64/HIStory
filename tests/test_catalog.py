@@ -194,8 +194,10 @@ def test_old_history_and_snapshots_move_to_backups(tmp_path):
 
 def test_a_backup_folder_is_made_only_when_a_file_is_kept(tmp_path):
     backup = state.Backup(tmp_path, "catalog-import")
-    assert backup.keep(tmp_path / "tracks.json") is None
-    assert not (tmp_path / "backups").exists()
+    assert backup.keep(tmp_path / "tracks.json") is None  # only an 'absent' marker is written
+    assert [p.name for p in backup.path.iterdir()] == ["tracks.json.absent"]
+    backup = state.Backup(tmp_path / "other", "catalog-import")
+    assert not (tmp_path / "other" / "backups").exists()
     (tmp_path / "tracks.json").write_text("{}")
     other = state.Backup(tmp_path, "catalog-import")
     other.base = backup.base  # as if both ran in the same second

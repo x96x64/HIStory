@@ -247,15 +247,16 @@ def remove_album(config: Config, album_text: str, dry_run: bool = False, exact: 
     return {"album": album, "tracks": len(gone), "dates": dates_removed, "covers": covers}
 
 
+BACKUP_FILES = ("tracks.json", "dates.json", "tracks.json.absent", "dates.json.absent")
 BACKUP_NAME = re.compile(r"^(\d{8}-\d{6})-(catalog|dates)")
 
 
 def latest_backup(config: Config) -> Path | None:
-    """The newest folder of state/backups that holds a tracks.json or a dates.json, or None."""
+    """The newest folder of state/backups that holds a tracks.json or a dates.json (or a marker that one was absent)."""
     folders = [
         d
         for d in (config.state / "backups").glob("*")
-        if d.is_dir() and BACKUP_NAME.match(d.name) and ((d / "tracks.json").is_file() or (d / "dates.json").is_file())
+        if d.is_dir() and BACKUP_NAME.match(d.name) and any((d / n).is_file() for n in BACKUP_FILES)
     ]
     return max(folders, key=lambda d: (d.name[:15], d.stat().st_mtime_ns), default=None)
 
@@ -264,13 +265,15 @@ def undo(config: Config, dry_run: bool = False) -> dict:
     """Restore the files of the newest backup of the catalog or of dates.json (the caller holds the lock).
 
     The current tracks.json and dates.json that are replaced are kept first in a new backup folder, so that a
-    second undo restores them again. Covers of the backup that are missing from covers/ are put back. Returns
-    {"from", "restored", "covers", "backup"}.
+    second undo restores them again. A file that did not exist when the backup was made (marked 'name.absent') is
+    removed. Covers of the backup that are missing from covers/ are put back. Returns
+    {"from", "restored", "removed", "covers", "backup"}.
     """
     source = latest_backup(config)
     if source is None:
         raise CatalogError("there is no backup of the catalog in state/backups to restore")
     names = [n for n in ("tracks.json", "dates.json") if (source / n).is_file()]
+    removed = [n for n in ("tracks.json", "dates.json") if (source / f"{n}.absent").is_file() and n not in names]
     if "tracks.json" in names:
         parse_records(source / "tracks.json")
     if "dates.json" in names:
@@ -284,17 +287,25 @@ def undo(config: Config, dry_run: bool = False) -> dict:
         if cover_dir.is_dir()
         else []
     )
-    report = {"from": source.name, "restored": names, "covers": covers, "backup": None, "dry_run": dry_run}
+    report = {
+        "from": source.name,
+        "restored": names,
+        "removed": removed,
+        "covers": covers,
+        "backup": None,
+        "dry_run": dry_run,
+    }
     if dry_run:
         return report
     backup = state.Backup(config.state, "catalog-undo")
-    for name in names:
-        target = config.home / name
-        backup.keep(target)
+    for name in names + removed:
+        backup.keep(config.home / name)
     for digest in covers:
         state.write_bytes(config.covers / digest, (cover_dir / digest).read_bytes())
     for name in names:
         state.write_bytes(config.home / name, (source / name).read_bytes())
+    for name in removed:
+        (config.home / name).unlink(missing_ok=True)
     report["backup"] = str(backup.path) if backup.path else None
     return report
 

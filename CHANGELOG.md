@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `hist stop` no longer signals an unrelated process after a crash: a process id in `convert.lock` is trusted only
   while the lock is really held.
+- `hist catalog undo` after a command that created `tracks.json` or `dates.json` now removes that file instead of
+  restoring an older, unrelated backup. The report lists these files under `removed`, and a second undo brings
+  them back.
 - Files written by `hist` (`tracks.json`, `dates.json` and others) keep the permissions of the file they replace,
   and a new file gets the usual permissions of the umask instead of `0600`.
 

@@ -82,3 +82,25 @@ def test_undo_refuses_a_backup_with_malformed_dates(home):
     assert main(["catalog", "undo"]) == 1
     assert ((home / "dates.json").read_bytes() if (home / "dates.json").exists() else None) == before
     assert genres(home) == ["Soul", "Soul"]
+
+
+def test_undo_removes_a_file_that_the_change_created_and_a_second_undo_brings_it_back(home, capsys):
+    main(["catalog", "set", "best", "Genre", "Soul"])
+    (home / "dates.json").unlink(missing_ok=True)
+    assert main(["dates", "set", "A/Best Of", "2000-01-01"]) == 0
+    assert (home / "dates.json").exists()
+    capsys.readouterr()
+    assert main(["catalog", "undo", "--json"]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["removed"] == ["dates.json"] and report["restored"] == []
+    assert not (home / "dates.json").exists()
+    assert genres(home) == ["Soul", "Soul"]
+    assert main(["catalog", "undo"]) == 0
+    assert (home / "dates.json").exists()
+    assert genres(home) == ["Soul", "Soul"]
+
+
+def test_a_missing_file_is_kept_as_an_absent_marker(tmp_path):
+    backup = state.Backup(tmp_path, "catalog")
+    assert backup.keep(tmp_path / "dates.json") is None
+    assert (backup.path / "dates.json.absent").is_file()

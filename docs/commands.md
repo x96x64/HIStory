@@ -214,7 +214,10 @@ replaced.
 backup of `retag` is not used), and put back the covers of that folder that are missing from `covers/`. The files
 it replaces are kept first in a new backup folder `<time>-catalog-undo`, so a second `undo` redoes the change. It
 holds the catalog lock. A backup whose `tracks.json` or `dates.json` is malformed is refused, and nothing is
-changed. `state/added.json` and `state/converted.json` are not restored. The library files keep their
+changed. When a command created `tracks.json` or `dates.json`, its backup folder holds an empty marker
+`<name>.absent`; `undo` then removes the file (listed as `removed` in the report, next to `restored`), and the
+removed file is kept in the undo backup, so a second `undo` brings it back. `state/added.json` and
+`state/converted.json` are not restored. The library files keep their
 tags until `hist retag`. With `--dry-run`, show what would be restored.
 
 `remove ALBUM [--dry-run] [--exact]`

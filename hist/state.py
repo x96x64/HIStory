@@ -112,11 +112,15 @@ class Backup:
         return self.path
 
     def keep(self, path: Path, name: str | None = None) -> Path | None:
-        """Copy path into the folder, as name (for example covers/<digest>) or under its own name."""
-        if not path.exists():
-            return None
+        """Copy path into the folder, as name (for example covers/<digest>) or under its own name.
+
+        A path that does not exist is recorded as an empty marker file '<name>.absent' and None is returned.
+        """
         target = self.folder() / (name or path.name)
         target.parent.mkdir(parents=True, exist_ok=True)
+        if not path.exists():
+            target.with_name(target.name + ".absent").touch()
+            return None
         shutil.copy2(path, target)
         return target
 

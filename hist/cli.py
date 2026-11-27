@@ -453,7 +453,12 @@ def catalog_undo(args, cfg) -> int:
         emit_json(done)
         return EXIT_OK
     verb = "Would restore" if args.dry_run else "Restored"
-    log.info(f"{verb} {', '.join(done['restored'])} from state/backups/{done['from']}")
+    if done["restored"]:
+        log.info(f"{verb} {', '.join(done['restored'])} from state/backups/{done['from']}")
+    if done["removed"]:
+        log.info(
+            f"{'Would remove' if args.dry_run else 'Removed'} {', '.join(done['removed'])} (it did not exist then)"
+        )
     if done["covers"]:
         log.info(f"  {len(done['covers'])} covers {'would be' if args.dry_run else 'were'} put back into covers/")
     if done["backup"]:
