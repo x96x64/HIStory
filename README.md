@@ -18,7 +18,7 @@ The conversion is lossless and verified. Each M4A must decode to exactly the sam
 
 ## Features
 
-- A catalog of exact tags in `tracks.json`, edited with `hist catalog` commands: `list`, `show`, `set`, `unset`, `edit`, `cover`, `export`, `add`, `remove`, `check` and `import`.
+- A catalog of exact tags in `tracks.json`, edited with `hist catalog` commands: `list`, `show`, `set`, `unset`, `edit`, `cover`, `export`, `add`, `remove`, `undo`, `check` and `import`.
 - Lossless conversion from FLAC to ALAC with ffmpeg, with a sample-by-sample comparison, a duration check and a check that no stray metadata is present.
 - Album folder and file dates set from `dates.json`, with `hist dates` commands to list, set, unset, apply and check them.
 - `hist verify` checks the library (and optionally the Music app) against the catalog, including track counts, store purchase data and release order.
@@ -100,7 +100,7 @@ Every command is described, with all of its options, in [docs/commands.md](https
 | Group | Commands | Purpose |
 | --- | --- | --- |
 | Setup | `init`, `doctor`, `agent-help` | Create the catalog folder, check the machine, print the guide for agents |
-| Catalog | `catalog list`, `show`, `set`, `unset`, `edit`, `cover`, `export`, `add`, `remove`, `check`, `import` | Read and change the exact tags |
+| Catalog | `catalog list`, `show`, `set`, `unset`, `edit`, `cover`, `export`, `add`, `remove`, `undo`, `check`, `import` | Read and change the exact tags |
 | Conversion | `convert`, `watch`, `stop`, `status` | Turn downloads into verified ALAC files and follow progress |
 | Dates | `dates list`, `apply`, `check`, `script`, `set`, `unset` | Manage the folder and file dates |
 | Checking | `verify`, `retag`, `refresh` | Compare files with the catalog and repair differences |
@@ -112,7 +112,7 @@ Global options go before the command: `--home DIR` selects the catalog folder, `
 
 The catalog is a folder (see Configuration for where it is) that holds everything `hist` needs to know about your library: `config.toml` for settings, `tracks.json` for the exact tags, `covers/` for cover images named by their SHA-256 hash, and `dates.json` for folder dates. A `state/` folder holds progress records, logs, locks and backups; it is created by `hist` and is not part of the catalog. The exact file formats are described in [docs/catalog-format.md](https://github.com/x96x64/HIStory/blob/main/docs/catalog-format.md).
 
-Changes are made with `hist catalog` commands rather than by hand. Each command that changes `tracks.json` or `dates.json` first checks the change, then writes the file once, and keeps the previous files in a new folder `state/backups/<time>-<command>/`. A rejected change leaves the catalog untouched.
+Changes are made with `hist catalog` commands rather than by hand. Each command that changes `tracks.json` or `dates.json` first checks the change, then writes the file once, and keeps the previous files in a new folder `state/backups/<time>-<command>/`. A rejected change leaves the catalog untouched. `hist catalog undo` restores the newest backup, and a second `undo` redoes the change.
 
 Writers take an exclusive lock named "catalog", so a second writer fails at once with the error code `locked` instead of corrupting the files. `hist catalog check` verifies that the catalog is consistent, and `hist doctor` reports whether `watch` or `convert` is currently running.
 
