@@ -108,7 +108,7 @@ GUIDE = {
     },
     "errors": {
         "json": 'with --json an error is printed on standard error as {"error": {"message": ..., "code": ...}}',
-        "codes": ["usage", "config", "catalog", "dates", "locked", "tool", "error"],
+        "codes": ["usage", "config", "catalog", "dates", "locked", "tool", "platform", "error"],
     },
 }
 

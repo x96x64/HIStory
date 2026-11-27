@@ -150,7 +150,7 @@ Exit codes:
 - `130`: interrupted (Ctrl-C)
 - `143`: stopped by SIGTERM
 
-With --json an error is printed on standard error as {"error": {"message": ..., "code": ...}}. Codes: `usage`, `config`, `catalog`, `dates`, `locked`, `tool`, `error`.
+With --json an error is printed on standard error as {"error": {"message": ..., "code": ...}}. Codes: `usage`, `config`, `catalog`, `dates`, `locked`, `tool`, `platform`, `error`.
 
 ## Commit and Pull Request Guidelines
 

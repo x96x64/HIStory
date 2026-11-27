@@ -23,6 +23,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   literal `--` is no longer taken as the option.
 - An unexpected `ValueError` is no longer reported as an ordinary error; it now shows its traceback. Wrong numbers
   in `config.toml` (`min_free_gb`, `renumber`) are reported as configuration errors.
+- The guide for AI agents (`hist agent-help` and `AGENTS.md`) now lists the error code `platform`, which a
+  command that needs macOS reports on another system.
 
 ## [2.5.1] - 2026-11-24
 
