@@ -92,7 +92,7 @@ replaced; a FLAC file is deleted only after its M4A passed every check.
 
 ### hist watch [--only TEXT] [--keep-flac] [--source DIR]... [--interval SECONDS] [--log FILE] [--convert-only]
 
-Look at the download folders and the library every 10 seconds.
+Look at the download folders and the library every 10 seconds (see `--interval`).
 
 Downloads: convert every complete download of an album in the catalog as `hist convert` does. Add a new album
 to the catalog first with `hist catalog add`.
@@ -109,6 +109,12 @@ Lines are also written to `state/logs/watch.log`.
 
 `--convert-only`
 : Do not watch the library; end when every album is converted.
+
+`--interval SECONDS`
+: Time between looks at the folders. Default: 10.
+
+`--log FILE`
+: Log file. Default: `<home>/state/logs/watch.log`.
 
 ### hist stop
 
