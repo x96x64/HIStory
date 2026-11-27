@@ -94,5 +94,5 @@ def test_commands_touch_each_item_once(tmp_path):
     (tmp_path / "A" / "B" / "1.m4a").write_text("x")
     cmds = dates.commands(entry("album", "A/B", "1977-01-02"), tmp_path)
     assert [c[0] for c in cmds] == ["touch", "SetFile"]
-    assert cmds[0][3:] == [str(tmp_path / "A" / "B"), str(tmp_path / "A" / "B" / "1.m4a")]
+    assert cmds[0][3:] == [str(tmp_path / "A" / "B" / "1.m4a"), str(tmp_path / "A" / "B")]
     assert dates.commands(entry("artist", "A", "1977-01-02"), tmp_path)[0][3:] == [str(tmp_path / "A")]

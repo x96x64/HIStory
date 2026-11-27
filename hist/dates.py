@@ -56,10 +56,11 @@ def items(entry: dict, root: Path) -> list:
 
 
 def commands(entry: dict, root: Path) -> list:
-    """touch and SetFile for the folder and, for an album, everything inside it (the folder is the first item)."""
+    """touch and SetFile for the folder and, for an album, everything inside it (the folder is the last item)."""
     stamp = entry["date"].strftime("%Y%m%d%H%M.00")
     shown = entry["date"].strftime("%m/%d/%Y %H:%M:%S")
-    every = [str(p) for p in items(entry, root)]
+    found = items(entry, root)
+    every = [str(p) for p in [*found[1:], found[0]]]
     return [["touch", "-t", stamp, *every], ["SetFile", "-d", shown, "-m", shown, *every]]
 
 
