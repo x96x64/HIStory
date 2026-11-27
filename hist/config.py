@@ -207,7 +207,14 @@ def load(home: Path, downloads_override=None) -> Config:
     for album, rule in match.get("renumber", {}).items():
         if not isinstance(rule, dict) or not {"disc", "offset"} <= set(rule):
             raise ConfigError(f"[match.renumber.\"{album}\"] needs 'disc' and 'offset'")
-        renumber[album] = {"disc": int(rule["disc"]), "offset": int(rule["offset"])}
+        try:
+            renumber[album] = {"disc": int(rule["disc"]), "offset": int(rule["offset"])}
+        except (TypeError, ValueError):
+            raise ConfigError(f"[match.renumber.\"{album}\"]: 'disc' and 'offset' must be whole numbers") from None
+    try:
+        min_free_gb = float(data.get("convert", {}).get("min_free_gb", 10))
+    except (TypeError, ValueError):
+        raise ConfigError("[convert] min_free_gb must be a number") from None
     downloads = downloads_override if downloads_override else paths.get("downloads", [])
     auto = not downloads
     return Config(
@@ -217,7 +224,7 @@ def load(home: Path, downloads_override=None) -> Config:
         library=path(paths.get("library", DEFAULT_LIBRARY)),
         auto_add=path(paths.get("auto_add", DEFAULT_AUTO_ADD)),
         evacuation=path(paths.get("evacuation", DEFAULT_EVACUATION)),
-        min_free_gb=float(data.get("convert", {}).get("min_free_gb", 10)),
+        min_free_gb=min_free_gb,
         store_album=store.get("album"),
         store_file=store.get("file"),
         aliases=dict(match.get("aliases", {})),

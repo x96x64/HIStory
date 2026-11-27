@@ -153,7 +153,7 @@ def test_os_error_without_json_has_no_traceback(tmp_path, capsys):
     "raised",
     [
         PermissionError(13, "Permission denied", "/x"),
-        ValueError("bad"),
+        json.JSONDecodeError("bad", "{", 0),
         UnicodeDecodeError("utf-8", b"\xff", 0, 1, "bad"),
     ],
 )
@@ -169,6 +169,19 @@ def test_unexpected_errors_map_to_code_error(capsys, monkeypatch, raised):
     monkeypatch.setattr(doctor, "run", boom)
     assert main(["doctor", "--json"]) == 1
     assert _json_error(capsys)["code"] == "error"
+
+
+def test_an_unexpected_value_error_is_not_hidden(monkeypatch):
+    from hist import doctor
+
+    main(["init"])
+
+    def boom(*args, **kwargs):
+        raise ValueError("a bug")
+
+    monkeypatch.setattr(doctor, "run", boom)
+    with pytest.raises(ValueError, match="a bug"):
+        main(["doctor"])
 
 
 def test_usage_error_is_json_for_an_abbreviation_but_not_after_double_dash(capsys):

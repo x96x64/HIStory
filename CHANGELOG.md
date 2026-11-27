@@ -21,6 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   and a new file gets the usual permissions of the umask instead of `0600`.
 - Usage errors are printed as JSON when `--json` is abbreviated (for example `--js`), and a `--json` after a
   literal `--` is no longer taken as the option.
+- An unexpected `ValueError` is no longer reported as an ordinary error; it now shows its traceback. Wrong numbers
+  in `config.toml` (`min_free_gb`, `renumber`) are reported as configuration errors.
 
 ## [2.5.1] - 2026-11-24
 

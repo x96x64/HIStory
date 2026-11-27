@@ -900,7 +900,7 @@ def main(argv=None) -> int:
         return fail(args, f"{error}; run 'hist doctor'", error.code, EXIT_ERROR)
     except HistError as error:
         return fail(args, str(error), error.code, EXIT_ERROR)
-    except (OSError, ValueError) as error:  # includes JSONDecodeError and UnicodeDecodeError
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError) as error:  # unreadable files; other errors are bugs
         if args.verbose:
             traceback.print_exc()
         return fail(args, str(error), "error", EXIT_ERROR)
